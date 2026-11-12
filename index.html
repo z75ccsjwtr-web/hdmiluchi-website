@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07090d">
+  <meta name="description" content="HDmiLuchi — independent music. Own the music. Support the artist.">
+  <title>HDmiLuchi🎧 — Independent Music</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="noise"></div>
+  <header class="topbar">
+    <a class="brand" href="#home" aria-label="HDmiLuchi home">HDmi<span>Luchi</span><b>🎧</b></a>
+    <button class="menu-toggle" aria-label="Open navigation" aria-expanded="false">☰</button>
+    <nav id="nav">
+      <a href="#home">Home</a><a href="#store">Music Store</a><a href="#library">My Music</a>
+      <a href="#bitcoin">Bitcoin Help</a><a href="#contact">Contact</a><a href="#account">Account</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" id="home">
+      <div class="hero-copy">
+        <p class="eyebrow"><span></span> INDEPENDENT. UNFILTERED. UNSTOPPABLE.</p>
+        <h1>THE SOUND.<br><em>THE OWNERSHIP.</em></h1>
+        <p class="lede">Own the music. Support the artist. Pay in Bitcoin.</p>
+        <a class="button" href="#store">ENTER THE MUSIC STORE <span>↗</span></a>
+      </div>
+      <div class="hero-orbit" aria-hidden="true"><div class="orbit-ring"></div><div class="orbit-core">HD<br><small>ML</small></div></div>
+      <div class="hero-foot"><span>HDMILUCHI AUDIO EXPERIENCE</span><span>EST. INDEPENDENT</span></div>
+    </section>
+
+    <section class="section store" id="store">
+      <div class="section-head"><p class="eyebrow">THE DROP / 001</p><h2>MUSIC <em>STORE</em></h2></div>
+      <article class="release">
+        <div class="artwork">
+          <img class="cover-image" src="assets/freaknicc-cover.png" alt="Official Freaknicc single cover art by HDmiLuchi">
+        </div>
+        <div class="release-info">
+          <p class="eyebrow">LATEST SINGLE</p>
+          <h3>Freaknicc</h3>
+          <p class="muted">HDmiLuchi🎧</p>
+          <div class="price">$1.99 <small>USD equivalent · payable in BTC when checkout is connected</small></div>
+          <div class="sample-box">
+            <div class="sample-label"><span>PREVIEW</span><span>15–30 SEC</span></div>
+            <audio controls preload="none" id="preview" aria-label="Freaknicc preview">
+              <source src="assets/freaknicc-preview.mp3" type="audio/mpeg">
+              Your browser does not support audio.
+            </audio>
+            <p class="tiny">Preview audio will be added with the official song files.</p>
+          </div>
+          <button class="button button-wide" id="buy" disabled>BITCOIN CHECKOUT — COMING SOON</button>
+          <p class="tiny">Full track access will unlock after a verified payment. No payment is collected on this starter site.</p>
+        </div>
+      </article>
+    </section>
+
+
+    <section class="section store" id="second-release">
+      <div class="section-head"><p class="eyebrow">THE DROP / 002</p><h2>SECOND <em>RELEASE</em></h2></div>
+      <article class="release">
+        <div class="artwork">
+          <img class="cover-image" src="assets/addicted-cover.png" alt="Official Addicted single cover art by HDmiLuchi">
+        </div>
+        <div class="release-info">
+          <p class="eyebrow">UPCOMING SINGLE</p>
+          <h3>Addicted</h3>
+          <p class="muted">HDmiLuchi🎧 · Second single release</p>
+          <div class="price">$1.99 <small>USD equivalent · final checkout total shown after applicable tax and payment fees are calculated</small></div>
+          <div class="sample-box">
+            <div class="sample-label"><span>PREVIEW</span><span>COMING SOON</span></div>
+            <p class="tiny">The Addicted preview will be added when you send it. No audio or full track is exposed here yet.</p>
+          </div>
+          <button class="button button-wide" disabled>CHECKOUT NOT YET CONNECTED</button>
+          <p class="tiny">This listing is a preview of the upcoming release. No payment is collected.</p>
+        </div>
+      </article>
+    </section>
+
+    <section class="section split" id="library">
+      <div><p class="eyebrow">YOUR COLLECTION</p><h2>MY <em>MUSIC</em></h2><p class="muted">Your purchased tracks will live here once fan accounts and secure sign-in are connected.</p></div>
+      <div class="locked-panel"><span class="lock">⌑</span><strong>FAN LIBRARY</strong><small>ACCOUNT SYSTEM NOT CONNECTED YET</small></div>
+    </section>
+
+    <section class="section split bitcoin" id="bitcoin">
+      <div><p class="eyebrow">PAY THE ARTIST DIRECTLY</p><h2>BITCOIN <em>HELP</em></h2><p class="muted">Lightning checkout is planned. Each order will need its own invoice and verified payment before a track is unlocked.</p></div>
+      <div class="info-panel"><strong>LIGHTNING CHECKOUT</strong><p>Setup pending. Your existing Cash App receiving address is on-chain, not a Lightning invoice. We’ll connect a Bitcoin-preserving Lightning wallet/provider later.</p><small>Never send a recovery phrase or private key to anyone.</small></div>
+    </section>
+
+    <section class="section split" id="account">
+      <div><p class="eyebrow">FAN ACCESS</p><h2>YOUR <em>ACCOUNT</em></h2><p class="muted">Fan registration and sign-in will be enabled after the secure account service is connected.</p></div>
+      <div class="info-panel"><strong>COMING IN THE NEXT BUILD</strong><p>Private fan accounts, purchase history, and a personal music library. Administrator access will remain separate and private.</p></div>
+    </section>
+
+    <section class="section contact" id="contact">
+      <p class="eyebrow">STAY CONNECTED</p><h2>CONTACT <em>HDMILUCHI</em></h2>
+      <p class="muted">A public support email can be added here when you choose one.</p>
+    </section>
+  </main>
+  <footer><span>© <span id="year"></span> HDmiLuchi🎧</span><span>INDEPENDENT BY DESIGN.</span></footer>
+  <script src="script.js"></script>
+</body>
+</html>
