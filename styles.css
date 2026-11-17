@@ -7,3 +7,6 @@
 @media(max-width:760px){.topbar{padding:0 6vw;height:66px}.menu-toggle{display:block}nav{display:none;position:absolute;top:65px;left:0;right:0;background:#080d15;border-bottom:1px solid #1b3b5d;padding:20px 7vw;flex-direction:column;gap:20px}nav.open{display:flex}.hero{min-height:560px;padding:90px 7vw 70px}.hero-orbit{right:-90px;top:90px;width:230px;height:230px;opacity:.55}.orbit-core{width:95px;height:95px;font-size:28px}.hero-copy{max-width:95%}.hero-foot{left:7vw;right:7vw;font-size:7px}.section{padding:65px 7vw}.release,.split{grid-template-columns:1fr;gap:30px}.artwork{max-width:420px;margin:auto;width:100%}.release-info h3{font-size:48px}footer{padding:22px 7vw;font-size:7px}}
 
 .cover-image{display:block;width:100%;height:100%;object-fit:cover;border:1px solid #77caff7a;box-shadow:0 0 35px #0875e833}
+
+/* Mobile hero text clarity fix */
+@media(max-width:760px){.hero-copy .eyebrow,.hero-copy .lede{display:block;position:relative;clear:both;float:none;width:100%;max-width:100%;height:auto;min-height:0;line-height:1.6;letter-spacing:2px;text-shadow:none;filter:none;mix-blend-mode:normal;transform:none;white-space:normal;overflow:visible;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}.hero-copy .eyebrow{margin:0 0 20px}.hero-copy .lede{margin:24px 0 30px}.hero-copy h1{display:block;position:relative;line-height:.95;margin:0}}
