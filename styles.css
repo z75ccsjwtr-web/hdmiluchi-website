@@ -10,3 +10,15 @@
 
 /* Mobile hero text clarity fix */
 @media(max-width:760px){.hero-copy .eyebrow,.hero-copy .lede{display:block;position:relative;clear:both;float:none;width:100%;max-width:100%;height:auto;min-height:0;line-height:1.6;letter-spacing:2px;text-shadow:none;filter:none;mix-blend-mode:normal;transform:none;white-space:normal;overflow:visible;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}.hero-copy .eyebrow{margin:0 0 20px}.hero-copy .lede{margin:24px 0 30px}.hero-copy h1{display:block;position:relative;line-height:.95;margin:0}}
+
+
+/* Fan account forms */
+.account-panel{background:linear-gradient(135deg,#101a28,#0a0e15);border:1px solid #1c3857;padding:24px}
+.auth-form{display:flex;flex-direction:column;gap:10px}
+.auth-form h3,.account-session h3{font-size:28px;margin:0 0 8px}
+.auth-form label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#9eb2c9;margin-top:6px}
+.auth-form input{width:100%;min-height:46px;padding:12px 14px;background:#070b12;color:#f5f8fc;border:1px solid #315273;border-radius:2px;font:14px Inter,Arial,sans-serif}
+.auth-form input:focus{outline:2px solid #168cff;outline-offset:2px}
+.auth-divider{text-align:center;color:#6f8298;font-size:9px;letter-spacing:2px;margin:24px 0}
+.auth-message{font-size:11px;line-height:1.7;color:#8fcfff;min-height:20px;margin:18px 0 0;overflow-wrap:anywhere}
+.auth-form button:disabled,.account-panel button:disabled{opacity:.55}
