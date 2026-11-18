@@ -93,8 +93,36 @@
     </section>
 
     <section class="section split" id="account">
-      <div><p class="eyebrow">FAN ACCESS</p><h2>YOUR <em>ACCOUNT</em></h2><p class="muted">Fan registration and sign-in will be enabled after the secure account service is connected.</p></div>
-      <div class="info-panel"><strong>COMING IN THE NEXT BUILD</strong><p>Private fan accounts, purchase history, and a personal music library. Administrator access will remain separate and private.</p></div>
+      <div><p class="eyebrow">FAN ACCESS</p><h2>YOUR <em>ACCOUNT</em></h2><p class="muted">Create a fan account or sign in to access your personal music area. Use an email address you can access to confirm registration.</p>
+        <div class="info-panel"><strong>PRIVATE FAN ACCESS</strong><p>Fan accounts are separate from the private administrator account. Registration does not yet unlock music purchases; checkout and the purchased library will be connected in a later step.</p></div>
+      </div>
+      <div class="account-panel">
+        <div id="account-forms">
+          <form id="signup-form" class="auth-form">
+            <h3>CREATE ACCOUNT</h3>
+            <label for="signup-email">Email address</label>
+            <input id="signup-email" name="email" type="email" autocomplete="email" required placeholder="you@example.com">
+            <label for="signup-password">Password</label>
+            <input id="signup-password" name="password" type="password" autocomplete="new-password" minlength="8" required placeholder="At least 8 characters">
+            <button class="button button-wide" type="submit">CREATE FAN ACCOUNT</button>
+          </form>
+          <div class="auth-divider">ALREADY REGISTERED?</div>
+          <form id="signin-form" class="auth-form">
+            <h3>SIGN IN</h3>
+            <label for="signin-email">Email address</label>
+            <input id="signin-email" name="email" type="email" autocomplete="email" required placeholder="you@example.com">
+            <label for="signin-password">Password</label>
+            <input id="signin-password" name="password" type="password" autocomplete="current-password" required placeholder="Your password">
+            <button class="button button-wide" type="submit">SIGN IN</button>
+          </form>
+        </div>
+        <div id="account-session" hidden>
+          <h3>YOU’RE SIGNED IN</h3>
+          <p id="signed-in-email" class="muted"></p>
+          <button class="button button-wide" id="signout-button" type="button">SIGN OUT</button>
+        </div>
+        <p id="auth-message" class="auth-message" role="status" aria-live="polite">Account connection will be ready after the site configuration is added.</p>
+      </div>
     </section>
 
     <section class="section contact" id="contact">
@@ -103,6 +131,8 @@
     </section>
   </main>
   <footer><span>© <span id="year"></span> HDmiLuchi🎧</span><span>INDEPENDENT BY DESIGN.</span></footer>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
