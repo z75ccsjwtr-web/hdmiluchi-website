@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow"><title>HDmiLuchi | Admin</title>
+<link rel="stylesheet" href="styles.css"><style>
+.admin-wrap{max-width:850px;margin:auto;padding:65px 7vw;min-height:75vh}
+.admin-card{padding:25px;background:#0d1623;border:1px solid #315273;margin-top:22px}
+.admin-card h2{font-size:36px}.admin-card p,.admin-card li{line-height:1.7;color:#c1d0df}
+.admin-card button{margin-top:12px}.admin-status{overflow-wrap:anywhere}
+.admin-table{width:100%;border-collapse:collapse;margin-top:15px}
+.admin-table th,.admin-table td{padding:12px 8px;border-bottom:1px solid #315273;text-align:left;font-size:13px}
+[hidden]{display:none!important}
+</style></head>
+<body><header class="topbar"><a class="brand" href="index.html#home">HDmi<span>Luchi</span><b>🎧</b></a><a href="index.html#account" style="color:#8fcfff">BACK TO SITE</a></header>
+<main class="admin-wrap"><p class="eyebrow">PRIVATE MANAGEMENT</p><h1 style="font-size:clamp(45px,8vw,76px)">ARTIST <em>DASHBOARD</em></h1>
+<div class="admin-card"><p id="status" class="admin-status" role="status" aria-live="polite">Checking your sign-in and administrator permission…</p>
+<div id="denied" hidden><p>This page requires your approved HDmiLuchi administrator account. Sign in on the main website first.</p><a class="button" href="index.html#account">ACCOUNT SIGN-IN</a></div>
+<div id="approved" hidden><h2>ADMINISTRATOR VERIFIED</h2><p>Your administrator status was confirmed by Supabase. Song management will be enabled only after its permissions and workflow are tested.</p>
+<h3 style="font-size:26px;margin-top:24px">SONG CATALOG</h3><div id="catalog" aria-live="polite">Loading catalog…</div>
+<p class="tiny">Read-only preview. No music, prices, or customer purchases can be changed from this page yet.</p>
+<button id="refresh" class="button" type="button">REFRESH CATALOG</button></div></div></main>
+<footer>HDmiLuchi🎧 <span>PRIVATE ADMIN ACCESS · SERVER-VERIFIED</span></footer>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script>
+<script>
+(async function(){
+ const status=document.getElementById('status'),denied=document.getElementById('denied'),approved=document.getElementById('approved'),catalog=document.getElementById('catalog');
+ const config=window.HDMI_SUPABASE_CONFIG;
+ function fail(msg){status.textContent=msg;denied.hidden=false;approved.hidden=true}
+ if(!config?.url||!config?.publishableKey||!window.supabase?.createClient){fail('Account service is unavailable. Return to the site and try again.');return}
+ const client=window.supabase.createClient(config.url,config.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+ async function loadCatalog(){
+   catalog.textContent='Loading catalog…';
+   const {data,error}=await client.from('songs').select('*').limit(50);
+   if(error){catalog.textContent='Catalog could not load: '+error.message;return}
+   if(!data?.length){catalog.textContent='No songs are visible to this account yet.';return}
+   const table=document.createElement('table');table.className='admin-table';
+   const head=document.createElement('tr');for(const name of ['Song','Published']){const th=document.createElement('th');th.textContent=name;head.append(th)}table.append(head);
+   for(const song of data){const row=document.createElement('tr');for(const value of [song.title??song.name??'(untitled)',song.is_published===true?'Yes':song.is_published===false?'No':'Unknown']){const td=document.createElement('td');td.textContent=String(value);row.append(td)}table.append(row)}
+   catalog.replaceChildren(table);
+ }
+ try{
+   const {data:{user},error:authError}=await client.auth.getUser();
+   if(authError||!user){fail('Please sign in to your administrator account on the main website.');return}
+   const {data:isAdmin,error:adminError}=await client.rpc('is_admin');
+   if(adminError){fail('Administrator verification failed: '+adminError.message);return}
+   if(isAdmin!==true){fail('This signed-in account is not authorized as an administrator.');return}
+   status.textContent='Verified administrator session.';approved.hidden=false;denied.hidden=true;
+   document.getElementById('refresh').addEventListener('click',loadCatalog);
+   await loadCatalog();
+   client.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'){fail('You have signed out.')}})
+ }catch(err){fail('Unable to verify administrator access. Please try again.')}
+})();
+</script></body></html>
