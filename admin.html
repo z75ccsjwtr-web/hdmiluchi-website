@@ -29,7 +29,7 @@
  const client=window.supabase.createClient(config.url,config.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
  async function loadCatalog(){
    catalog.textContent='Loading catalog…';
-   const {data,error}=await client.from('songs').select('*').order('created_at',{ascending:false}).limit(50);
+   const {data,error}=await client.from('songs').select('*').limit(50);
    if(error){catalog.textContent='Catalog could not load: '+error.message;return}
    if(!data?.length){catalog.textContent='No songs are visible to this account yet.';return}
    const table=document.createElement('table');table.className='admin-table';
