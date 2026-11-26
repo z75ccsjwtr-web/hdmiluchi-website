@@ -15,7 +15,7 @@
 <div class="admin-card"><p id="status" class="admin-status" role="status" aria-live="polite">Checking your sign-in and administrator permission…</p>
 <div id="denied" hidden><p>This page requires your approved HDmiLuchi administrator account. Sign in on the main website first.</p><a class="button" href="index.html#account">ACCOUNT SIGN-IN</a></div>
 <div id="approved" hidden><h2>ADMINISTRATOR VERIFIED</h2><p>Your administrator status was confirmed by Supabase. Manage your catalog below. Storefront synchronization is not yet enabled.</p>
-<h3 style="font-size:26px;margin-top:24px">BUSINESS OVERVIEW</h3><button id="business-refresh" class="button" type="button">REFRESH BUSINESS DATA</button><div id="business-data" style="overflow-x:auto"></div><div id="customer-data" style="overflow-x:auto"></div><div id="activity-data" style="overflow-x:auto"></div><h3 style="font-size:26px;margin-top:24px">WEBSITE DISPLAY</h3>
+<h3 style="font-size:26px;margin-top:24px">PRIVATE OWNER MUSIC</h3><p>Listen to your uploaded full tracks without recording a purchase.</p><button id="owner-refresh" class="button" type="button">REFRESH PRIVATE MUSIC</button><div id="owner-tracks"></div><audio id="owner-player" controls controlslist="nodownload" style="width:100%" hidden></audio><p id="owner-status" role="status"></p><h3 style="font-size:26px;margin-top:24px">BUSINESS OVERVIEW</h3><button id="business-refresh" class="button" type="button">REFRESH BUSINESS DATA</button><div id="business-data" style="overflow-x:auto"></div><div id="customer-data" style="overflow-x:auto"></div><div id="activity-data" style="overflow-x:auto"></div><h3 style="font-size:26px;margin-top:24px">WEBSITE DISPLAY</h3>
 <form id="display-settings" class="auth-form" hidden>
 <label for="display-mode">Subscriber display</label><select id="display-mode" name="mode"><option value="live">Live count</option><option value="goal">Fan goal</option><option value="custom">Public announcement</option><option value="hidden">Hidden</option></select>
 <label>Fan goal<input name="goal" type="number" min="1" max="9007199254740991" required></label>
@@ -167,6 +167,13 @@
      }catch{for(const el of [b,c,a])el.textContent='Unable to load business data. Try refreshing.'}finally{button.disabled=false}
    }
    document.getElementById('business-refresh').addEventListener('click',refreshBusiness);await refreshBusiness();
+   const ownerTracks=document.getElementById('owner-tracks'),ownerPlayer=document.getElementById('owner-player'),ownerStatus=document.getElementById('owner-status');
+   let ownerVersion=0;
+   function clearOwner(){ownerVersion++;ownerPlayer.pause();ownerPlayer.removeAttribute('src');ownerPlayer.load();ownerPlayer.hidden=true;ownerTracks.replaceChildren();ownerStatus.textContent=''}
+   async function loadOwner(){clearOwner();const version=ownerVersion;ownerStatus.textContent='Loading private tracks…';try{const r=await client.rpc('admin_music_library');if(version!==ownerVersion)return;if(r.error)throw Error(r.error.message);ownerStatus.textContent=r.data.length?'Select a full track.':'No private tracks uploaded yet.';for(const track of r.data){const button=document.createElement('button');button.type='button';button.className='button';button.textContent='PLAY '+track.title;button.addEventListener('click',async()=>{const request=++ownerVersion;ownerPlayer.pause();ownerPlayer.removeAttribute('src');ownerPlayer.load();ownerPlayer.hidden=true;ownerStatus.textContent='Loading '+track.title;try{const result=await client.storage.from('purchased-music').createSignedUrl(track.audio_path,600);if(request!==ownerVersion)return;if(result.error)throw Error(result.error.message);ownerPlayer.src=result.data.signedUrl;ownerPlayer.hidden=false;ownerStatus.textContent=track.title+' — press play.';await ownerPlayer.play().catch(()=>{});}catch(err){if(request===ownerVersion)ownerStatus.textContent='Playback unavailable: '+err.message}});ownerTracks.append(button)}}catch(err){if(version===ownerVersion)ownerStatus.textContent='Private library unavailable: '+err.message}}
+   document.getElementById('owner-refresh').addEventListener('click',loadOwner);
+   client.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT')clearOwner()});
+   await loadOwner();
  }catch(err){fail('Unable to verify administrator access. Please try again.')}
 })();
 </script></body></html>
