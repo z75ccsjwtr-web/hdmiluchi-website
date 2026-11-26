@@ -15,8 +15,14 @@
 <div class="admin-card"><p id="status" class="admin-status" role="status" aria-live="polite">Checking your sign-in and administrator permission…</p>
 <div id="denied" hidden><p>This page requires your approved HDmiLuchi administrator account. Sign in on the main website first.</p><a class="button" href="index.html#account">ACCOUNT SIGN-IN</a></div>
 <div id="approved" hidden><h2>ADMINISTRATOR VERIFIED</h2><p>Your administrator status was confirmed by Supabase. Song management will be enabled only after its permissions and workflow are tested.</p>
+<h3 style="font-size:26px;margin-top:24px">WEBSITE DISPLAY</h3>
+<form id="display-settings" class="auth-form" hidden>
+<label for="display-mode">Subscriber display</label><select id="display-mode" name="mode"><option value="live">Live count</option><option value="goal">Fan goal</option><option value="custom">Public announcement</option><option value="hidden">Hidden</option></select>
+<label>Fan goal<input name="goal" type="number" min="1" max="9007199254740991" required></label>
+<label>Public announcement<input name="announcement" maxlength="120"></label>
+<button class="button" type="submit">SAVE DISPLAY SETTINGS</button></form><p id="display-status" role="status"></p>
 <h3 style="font-size:26px;margin-top:24px">SONG CATALOG</h3><div id="catalog" aria-live="polite">Loading catalog…</div>
-<p class="tiny">Read-only preview. No music, prices, or customer purchases can be changed from this page yet.</p>
+<p class="tiny">Song catalog is read-only. Music, prices and purchases cannot be changed yet.</p>
 <button id="refresh" class="button" type="button">REFRESH CATALOG</button></div></div></main>
 <footer>HDmiLuchi🎧 <span>PRIVATE ADMIN ACCESS · SERVER-VERIFIED</span></footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script>
@@ -45,6 +51,24 @@
    if(isAdmin!==true){fail('This signed-in account is not authorized as an administrator.');return}
    status.textContent='Verified administrator session.';approved.hidden=false;denied.hidden=true;
    document.getElementById('refresh').addEventListener('click',loadCatalog);
+   const form=document.getElementById('display-settings'), displayStatus=document.getElementById('display-status');
+   form.addEventListener('submit',async event=>{
+     event.preventDefault();
+     const mode=form.elements.mode.value,goal=Number(form.elements.goal.value),announcement=form.elements.announcement.value.trim();
+     if(!Number.isSafeInteger(goal)||goal<1||(mode==='custom'&&!announcement)){displayStatus.textContent='Enter a valid goal or announcement.';return}
+     const button=form.querySelector('button');button.disabled=true;
+     try{
+       const {data,error}=await client.from('site_settings').update({subscriber_mode:mode,subscriber_goal:goal,custom_message:announcement}).eq('id',1).select('id').single();
+       displayStatus.textContent=!error&&data?.id===1?'Settings saved.':'Save failed. Check administrator access.';
+     }catch{displayStatus.textContent='Save failed. Try again.'}finally{button.disabled=false}
+   });
+   const settings=await client.from('site_settings').select('subscriber_mode,subscriber_goal,custom_message').eq('id',1).single();
+   if(settings.error||!settings.data){displayStatus.textContent='Display settings unavailable.'}else{
+     form.elements.mode.value=settings.data.subscriber_mode;
+     form.elements.goal.value=settings.data.subscriber_goal;
+     form.elements.announcement.value=settings.data.custom_message;
+     form.hidden=false;
+   }
    await loadCatalog();
    client.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'){fail('You have signed out.')}})
  }catch(err){fail('Unable to verify administrator access. Please try again.')}
