@@ -42,6 +42,29 @@ document.querySelector('#year').textContent = new Date().getFullYear();
     auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true }
   });
 
+  const subscriberCount = document.querySelector('#subscriber-count');
+  if (subscriberCount) {
+    let refreshing = false;
+    const refreshSubscribers = async () => {
+      if (refreshing || document.hidden) return;
+      refreshing = true;
+      try {
+        const { data, error } = await client.rpc('get_subscriber_count');
+        const count = Number(data);
+        subscriberCount.textContent = !error && data !== null &&
+          Number.isSafeInteger(count) && count >= 0
+          ? count.toLocaleString() : '—';
+      } catch {
+        subscriberCount.textContent = '—';
+      } finally {
+        refreshing = false;
+      }
+    };
+    refreshSubscribers();
+    setInterval(refreshSubscribers, 60000);
+    document.addEventListener('visibilitychange', refreshSubscribers);
+  }
+
   const showSession = (user) => {
     const signedIn = Boolean(user);
     forms.hidden = signedIn;
