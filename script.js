@@ -77,12 +77,56 @@ document.querySelector('#year').textContent = new Date().getFullYear();
   setInterval(refreshSubscribers,60000);
   document.addEventListener('visibilitychange',refreshSubscribers);
 
+  let libraryVersion = 0;
+  let libraryUser;
+  const refreshLibrary = (user) => {
+    const panel = document.querySelector('#fan-library');
+    if (!panel) return;
+    const uid = user?.id || null;
+    if (libraryUser === uid) return;
+    libraryUser = uid;
+    const version = ++libraryVersion;
+    panel.querySelectorAll('audio').forEach(a => { a.pause(); a.removeAttribute('src'); a.load(); });
+    panel.textContent = uid ? 'Loading your music…' : 'Sign in to access your purchased music.';
+    if (!uid) return;
+    setTimeout(async () => {
+      try {
+        const {data,error} = await client.rpc('get_my_music');
+        if (version !== libraryVersion) return;
+        if (error) throw error;
+        panel.replaceChildren();
+        if (!data.length) { panel.textContent = 'Your library is empty. Purchased songs will appear here.'; return; }
+        for (const track of data) {
+          const item = document.createElement('div');
+          item.style.cssText = 'width:100%;padding:12px 0';
+          const title = document.createElement('strong'); title.textContent = track.title;
+          const play = document.createElement('button'); play.type='button'; play.className='button button-wide'; play.textContent='PLAY TRACK';
+          const audio = document.createElement('audio'); audio.controls=true; audio.preload='none'; audio.hidden=true; audio.style.width='100%'; audio.setAttribute('controlsList','nodownload'); audio.setAttribute('disablePictureInPicture','');
+          const status = document.createElement('small'); status.setAttribute('role','status');
+          play.addEventListener('click', async () => {
+            play.disabled=true; status.textContent='Preparing playback…';
+            try {
+              const {data:link,error} = await client.storage.from('purchased-music').createSignedUrl(track.audio_path,600);
+              if(version!==libraryVersion)return;
+              if(error||!link?.signedUrl)throw Error('Playback unavailable');
+              audio.src=link.signedUrl; audio.hidden=false; status.textContent='Press play on the audio player. Reload track if the link expires.';
+              play.textContent='RELOAD TRACK';
+            } catch { if(version===libraryVersion)status.textContent='Unable to load track. Please try again.'; }
+            finally {play.disabled=false;}
+          });
+          item.append(title,play,audio,status); panel.append(item);
+        }
+      } catch { if(version===libraryVersion){panel.textContent='Library temporarily unavailable. Refresh to try again.';libraryUser=undefined;} }
+    },0);
+  };
+
   const showSession = (user) => {
+    refreshLibrary(user);
     const signedIn = Boolean(user);
     forms.hidden = signedIn;
     sessionPanel.hidden = !signedIn;
     signedInEmail.textContent = signedIn ? user.email : '';
-    if (signedIn) setMessage('You are signed in. Your purchased music library will be connected in a later step.');
+    if (signedIn) setMessage('You are signed in. Visit My Music to access your library.');
   };
 
   signupForm.addEventListener('submit', async (event) => {
@@ -116,7 +160,7 @@ document.querySelector('#year').textContent = new Date().getFullYear();
     setBusy(signinForm, false);
     if (error) return setMessage(error.message, true);
     showSession(data.user);
-    setMessage('You are signed in. Your purchased music library will be connected in a later step.');
+    setMessage('You are signed in. Visit My Music to access your library.');
     signinForm.reset();
   });
 
