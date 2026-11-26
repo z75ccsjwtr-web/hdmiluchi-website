@@ -15,7 +15,7 @@
 <div class="admin-card"><p id="status" class="admin-status" role="status" aria-live="polite">Checking your sign-in and administrator permission…</p>
 <div id="denied" hidden><p>This page requires your approved HDmiLuchi administrator account. Sign in on the main website first.</p><a class="button" href="index.html#account">ACCOUNT SIGN-IN</a></div>
 <div id="approved" hidden><h2>ADMINISTRATOR VERIFIED</h2><p>Your administrator status was confirmed by Supabase. Manage your catalog below. Storefront synchronization is not yet enabled.</p>
-<h3 style="font-size:26px;margin-top:24px">PRIVATE OWNER MUSIC</h3><p>Listen to your uploaded full tracks without recording a purchase.</p><button id="owner-refresh" class="button" type="button">REFRESH PRIVATE MUSIC</button><div id="owner-tracks"></div><audio id="owner-player" controls controlslist="nodownload" style="width:100%" hidden></audio><p id="owner-status" role="status"></p><h3 style="font-size:26px;margin-top:24px">BUSINESS OVERVIEW</h3><button id="business-refresh" class="button" type="button">REFRESH BUSINESS DATA</button><div id="storage-meters"></div><div id="business-data" style="overflow-x:auto"></div><div id="customer-data" style="overflow-x:auto"></div><div id="activity-data" style="overflow-x:auto"></div><h3 style="font-size:26px;margin-top:24px">WEBSITE DISPLAY</h3>
+<h3 style="font-size:26px;margin-top:24px">PRIVATE OWNER MUSIC</h3><p>Listen to your uploaded full tracks without recording a purchase.</p><button id="owner-refresh" class="button" type="button">REFRESH PRIVATE MUSIC</button><div id="owner-tracks"></div><audio id="owner-player" controls controlslist="nodownload" style="width:100%" hidden></audio><p id="owner-status" role="status"></p><h3 style="font-size:26px;margin-top:24px">FAN ACCESS MANAGER</h3><p>Grant complimentary access to individual verified fans. Existing paid purchases are unaffected. Revocation prevents new playback links; existing links may last up to 10 minutes.</p><button id="gift-refresh" class="button" type="button">REFRESH FAN ACCESS</button><form id="gift-form" class="auth-form" hidden><label>Verified fan<select name="fan" required></select></label><label>Private full song<select name="track" required></select></label><label>Expiration (optional, local time)<input type="datetime-local" name="expiry"></label><button class="button" type="submit">GRANT / UPDATE ACCESS</button></form><p id="gift-status" role="status"></p><div id="gift-list" style="overflow-x:auto"></div><h3 style="font-size:26px;margin-top:24px">BUSINESS OVERVIEW</h3><button id="business-refresh" class="button" type="button">REFRESH BUSINESS DATA</button><div id="storage-meters"></div><div id="business-data" style="overflow-x:auto"></div><div id="customer-data" style="overflow-x:auto"></div><div id="activity-data" style="overflow-x:auto"></div><h3 style="font-size:26px;margin-top:24px">WEBSITE DISPLAY</h3>
 <form id="display-settings" class="auth-form" hidden>
 <label for="display-mode">Subscriber display</label><select id="display-mode" name="mode"><option value="live">Live count</option><option value="goal">Fan goal</option><option value="custom">Public announcement</option><option value="hidden">Hidden</option></select>
 <label>Fan goal<input name="goal" type="number" min="1" max="9007199254740991" required></label>
@@ -174,6 +174,34 @@
    document.getElementById('owner-refresh').addEventListener('click',loadOwner);
    client.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT')clearOwner()});
    await loadOwner();
+
+   const gf=document.getElementById('gift-form'),gs=document.getElementById('gift-status'),gl=document.getElementById('gift-list'),gr=document.getElementById('gift-refresh');
+   let giftVersion=0;
+   async function loadGifts(){
+     const version=++giftVersion;gf.hidden=true;gr.disabled=true;gl.replaceChildren();gs.textContent='Loading fan access…';
+     try{
+       const [fans,tracks,access]=await Promise.all([client.rpc('admin_eligible_fans'),client.rpc('admin_music_library'),client.from('fan_access').select('id,user_id,song_id,active,expires_at').order('granted_at',{ascending:false}).limit(1000)]);
+       if(version!==giftVersion)return;
+       for(const r of [fans,tracks,access])if(r.error)throw Error(r.error.message);
+       const fm=new Map(fans.data.map(x=>[x.user_id,x.email])),tm=new Map(tracks.data.map(x=>[x.song_id,x.title]));
+       gf.elements.fan.replaceChildren(new Option('Select fan',''));gf.elements.track.replaceChildren(new Option('Select song',''));
+       for(const [id,label] of fm)gf.elements.fan.add(new Option(label,id));
+       for(const [id,label] of tm)gf.elements.track.add(new Option(label,id));
+       gf.hidden=!fm.size||!tm.size;
+       gs.textContent=gf.hidden?'A verified fan and a private track are required.':'Choose a fan and song. Leave expiration blank for indefinite access.';
+       for(const a of access.data){
+         const p=document.createElement('div');p.style.cssText='padding:12px 0;border-bottom:1px solid #315273';
+         const label=document.createElement('p');label.textContent=(fm.get(a.user_id)||a.user_id)+' — '+(tm.get(a.song_id)||a.song_id)+' — '+(!a.active?'Revoked':a.expires_at&&new Date(a.expires_at)<=new Date()?'Expired':'Active')+(a.expires_at?' · '+new Date(a.expires_at).toLocaleString():'');p.append(label);
+         if(a.active){const b=document.createElement('button');b.type='button';b.className='button';b.textContent='REVOKE ACCESS';b.addEventListener('click',async()=>{if(!confirm('Revoke this complimentary access?'))return;b.disabled=true;try{const r=await client.from('fan_access').update({active:false}).eq('id',a.id).select('id').single();if(r.error||r.data?.id!==a.id)throw Error(r.error?.message||'Revoke failed');await loadGifts();gs.textContent='Complimentary access revoked.'}catch(e){gs.textContent=e.message;b.disabled=false}});p.append(b)}gl.append(p);
+       }
+       if(!access.data.length)gl.textContent='No complimentary access records yet.';
+     }catch(e){if(version===giftVersion)gs.textContent='Fan access unavailable: '+e.message}finally{if(version===giftVersion)gr.disabled=false}
+   }
+   gf.addEventListener('submit',async e=>{e.preventDefault();const fan=gf.elements.fan.value,track=gf.elements.track.value,raw=gf.elements.expiry.value;const expiry=raw?new Date(raw):null;if(!fan||!track||(expiry&&(!Number.isFinite(expiry.getTime())||expiry<=new Date()))){gs.textContent='Select a fan, song and a future expiration if desired.';return}if(!confirm('Grant or update complimentary access for this fan?'))return;const b=gf.querySelector('button');b.disabled=true;gr.disabled=true;try{const r=await client.from('fan_access').upsert({user_id:fan,song_id:track,active:true,expires_at:expiry?expiry.toISOString():null,granted_at:new Date().toISOString()},{onConflict:'user_id,song_id'}).select('id').single();if(r.error||!r.data?.id)throw Error(r.error?.message||'Grant failed');gf.reset();await loadGifts();gs.textContent='Complimentary access saved. Fan can refresh My Music.'}catch(e){gs.textContent=e.message}finally{b.disabled=false;gr.disabled=false}});
+   gr.addEventListener('click',loadGifts);
+   client.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT'){giftVersion++;gf.reset();gf.hidden=true;gf.elements.fan.replaceChildren();gf.elements.track.replaceChildren();gl.replaceChildren();gs.textContent=''}});
+   await loadGifts();
+
  }catch(err){fail('Unable to verify administrator access. Please try again.')}
 })();
 </script></body></html>
