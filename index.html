@@ -38,53 +38,7 @@
 
     <section class="section store" id="store">
       <div class="section-head"><p class="eyebrow">THE DROP / 001</p><h2>MUSIC <em>STORE</em></h2></div>
-      <article class="release">
-        <div class="artwork">
-          <img class="cover-image" src="assets/freaknicc-cover.png" alt="Official Freaknicc single cover art by HDmiLuchi">
-        </div>
-        <div class="release-info">
-          <p class="eyebrow">LATEST SINGLE</p>
-          <h3>Freaknicc</h3>
-          <p class="muted">HDmiLuchi🎧</p>
-          <div class="price">$1.99 <small>USD equivalent · payable in BTC when checkout is connected</small></div>
-          <div class="sample-box">
-            <div class="sample-label"><span>PREVIEW</span><span>15–30 SEC</span></div>
-            <audio controls controlsList="nodownload" disablePictureInPicture preload="none" id="preview" aria-label="Freaknicc preview">
-              <source src="assets/freaknicc-preview.mp3" type="audio/mpeg">
-              Your browser does not support audio.
-            </audio>
-            <p class="tiny">Listen to the cleaned 30-second preview.</p>
-          </div>
-          <button class="button button-wide" id="buy" disabled>BITCOIN CHECKOUT — COMING SOON</button>
-          <p class="tiny">Full track access will unlock after a verified payment. No payment is collected on this starter site.</p>
-        </div>
-      </article>
-    </section>
-
-
-    <section class="section store" id="second-release">
-      <div class="section-head"><p class="eyebrow">THE DROP / 002</p><h2>SECOND <em>RELEASE</em></h2></div>
-      <article class="release">
-        <div class="artwork">
-          <img class="cover-image" src="assets/addicted-cover.png" alt="Official Addicted single cover art by HDmiLuchi">
-        </div>
-        <div class="release-info">
-          <p class="eyebrow">SECOND SINGLE</p>
-          <h3>Addicted</h3>
-          <p class="muted">HDmiLuchi🎧 · Second single release</p>
-          <div class="price">$1.99 <small>USD equivalent · final checkout total shown after applicable tax and payment fees are calculated</small></div>
-          <div class="sample-box">
-            <div class="sample-label"><span>PREVIEW</span><span>30 SEC</span></div>
-            <audio controls controlsList="nodownload" disablePictureInPicture preload="none" aria-label="Addicted preview">
-              <source src="assets/Addicted_preview_clean%202.mp3" type="audio/mpeg">
-              Your browser does not support audio.
-            </audio>
-            <p class="tiny">Listen to the cleaned 30-second preview.</p>
-          </div>
-          <button class="button button-wide" disabled>CHECKOUT NOT YET CONNECTED</button>
-          <p class="tiny">This listing is a preview of the upcoming release. No payment is collected.</p>
-        </div>
-      </article>
+      <div id="live-catalog" aria-live="polite"><p class="muted">Loading music store…</p></div>
     </section>
 
     <section class="section split" id="library">
@@ -140,5 +94,22 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="script.js"></script>
+  <script>
+(() => {
+const root=document.getElementById('live-catalog'),cfg=window.HDMI_SUPABASE_CONFIG;
+const el=(tag,cls,txt)=>{const e=document.createElement(tag);e.className=cls||'';if(txt!==undefined)e.textContent=txt;return e;};
+function media(path,bucket){if(!path)return null;try{const u=new URL(path,location.href);if(u.origin===location.origin&&u.pathname.startsWith(new URL('assets/',location.href).pathname))return u.href;if(u.origin===new URL(cfg.url).origin&&u.pathname.startsWith('/storage/v1/object/public/'+bucket+'/'))return u.href;}catch{}return null;}
+(async()=>{try{
+const client=window.supabase.createClient(cfg.url,cfg.publishableKey,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'hdm-public-catalog'}});
+const {data,error}=await client.from('songs').select('id,title,price_cents,cover_image_path,preview_audio_path,display_order').eq('is_published',true).order('display_order').order('created_at');if(error)throw error;
+const frag=document.createDocumentFragment();
+for(const s of data){const a=el('article','release');a.style.marginBottom='24px';const art=el('div','artwork'),cover=media(s.cover_image_path,'cover-artwork');if(cover){const img=el('img','cover-image');img.src=cover;img.alt=s.title+' cover artwork';art.append(img);}
+const info=el('div','release-info');info.append(el('p','eyebrow','SINGLE RELEASE'),el('h3','',s.title),el('p','muted','HDmiLuchi🎧'));const price=el('div','price',new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(s.price_cents/100)+' ');price.append(el('small','','USD equivalent · final checkout total shown after applicable tax and payment fees are calculated'));info.append(price);
+const preview=media(s.preview_audio_path,'song-previews');if(preview){const box=el('div','sample-box'),label=el('div','sample-label');label.append(el('span','','PREVIEW'),el('span','','15–30 SEC'));const audio=el('audio');audio.controls=true;audio.preload='none';audio.setAttribute('controlsList','nodownload');audio.setAttribute('disablePictureInPicture','');audio.setAttribute('aria-label',s.title+' preview');audio.src=preview;box.append(label,audio);info.append(box);}
+const b=el('button','button button-wide','BITCOIN CHECKOUT — COMING SOON');b.disabled=true;info.append(b,el('p','tiny','No payment is collected yet.'));a.append(art,info);frag.append(a);}
+if(!data.length)frag.append(el('p','muted','No releases currently available.'));root.replaceChildren(frag);
+}catch{root.replaceChildren(el('p','muted','Music store temporarily unavailable. Please refresh to try again.'));}})();
+})();
+  </script>
 </body>
 </html>
