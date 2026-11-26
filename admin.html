@@ -15,12 +15,12 @@
 <div class="admin-card"><p id="status" class="admin-status" role="status" aria-live="polite">Checking your sign-in and administrator permission…</p>
 <div id="denied" hidden><p>This page requires your approved HDmiLuchi administrator account. Sign in on the main website first.</p><a class="button" href="index.html#account">ACCOUNT SIGN-IN</a></div>
 <div id="approved" hidden><h2>ADMINISTRATOR VERIFIED</h2><p>Your administrator status was confirmed by Supabase. Manage your catalog below. Storefront synchronization is not yet enabled.</p>
-<h3 style="font-size:26px;margin-top:24px">WEBSITE DISPLAY</h3>
+<h3 style="font-size:26px;margin-top:24px">BUSINESS OVERVIEW</h3><button id="business-refresh" class="button" type="button">REFRESH BUSINESS DATA</button><div id="business-data" style="overflow-x:auto"></div><div id="customer-data" style="overflow-x:auto"></div><div id="activity-data" style="overflow-x:auto"></div><h3 style="font-size:26px;margin-top:24px">WEBSITE DISPLAY</h3>
 <form id="display-settings" class="auth-form" hidden>
 <label for="display-mode">Subscriber display</label><select id="display-mode" name="mode"><option value="live">Live count</option><option value="goal">Fan goal</option><option value="custom">Public announcement</option><option value="hidden">Hidden</option></select>
 <label>Fan goal<input name="goal" type="number" min="1" max="9007199254740991" required></label>
 <label>Public announcement<input name="announcement" maxlength="120"></label>
-<button class="button" type="submit">SAVE DISPLAY SETTINGS</button></form><p id="display-status" role="status"></p>
+<label><input type="checkbox" name="online"> Show online count (pending storefront connection)</label><label><input type="checkbox" name="maintenance"> Maintenance mode (pending checkout connection)</label><button class="button" type="submit">SAVE DISPLAY SETTINGS</button></form><p id="display-status" role="status"></p>
 <h3 style="font-size:26px;margin-top:24px">SONG CATALOG</h3><div id="catalog" aria-live="polite">Loading catalog…</div>
 <form id="song-editor" class="auth-form" hidden>
 <label>Release<select name="song"><option value="">New release</option></select></label>
@@ -28,7 +28,7 @@
 <label>Price (USD)<input name="price" type="number" min="0.01" max="100000" step="0.01" value="1.99" required></label>
 <label>Display order<input name="order" type="number" min="0" max="100000" step="1" value="0" required></label>
 <label><input name="published" type="checkbox"> Published in database</label>
-<label>Cover artwork (JPEG, PNG, WebP)<input name="cover" type="file" accept="image/jpeg,image/png,image/webp"></label>
+<label>Scheduled publish (local time)<input type="datetime-local" name="publish_at"></label><label>Scheduled removal (local time)<input type="datetime-local" name="unpublish_at"></label><p class="tiny">Dates are saved only; automatic scheduling is not yet enabled.</p><label>Cover artwork (JPEG, PNG, WebP)<input name="cover" type="file" accept="image/jpeg,image/png,image/webp"></label>
 <label>Public preview (MP3, 15–30 seconds)<input name="preview" type="file" accept=".mp3,audio/mpeg"></label>
 <label>Private full track (MP3)<input name="full" type="file" accept=".mp3,audio/mpeg"></label>
 <label><input name="prepared" type="checkbox"> I confirm any selected files are prepared copies, checked for metadata, and the public preview is not a full track.</label>
@@ -52,7 +52,7 @@
    editor.elements.title.value=s?.title||'';
    editor.elements.price.value=((s?.price_cents??199)/100).toFixed(2);
    editor.elements.order.value=s?.display_order??0;
-   editor.elements.published.checked=s?.is_published===true;
+   editor.elements.published.checked=s?.is_published===true; for(const k of ['publish_at','unpublish_at']){const d=s?.[k]?new Date(s[k]):null;editor.elements[k].value=d?new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16):'';}
    for(const name of ['cover','preview','full']) editor.elements[name].value='';
    editor.elements.prepared.checked=false;
  }
@@ -91,7 +91,7 @@
      const auth=await client.rpc('is_admin');if(auth.error||auth.data!==true)throw Error('Administrator authorization required.');
      if(preview)await checkPreview(preview);
      songStatus.textContent='Saving release…';
-     const fields={title,price_cents:price,display_order:order,is_published:published};
+     const fields={title,price_cents:price,display_order:order,is_published:published,publish_at:e.publish_at.value?new Date(e.publish_at.value).toISOString():null,unpublish_at:e.unpublish_at.value?new Date(e.unpublish_at.value).toISOString():null};
      if(cover){const path=await upload('cover-artwork',cover,ext);fields.cover_image_path=client.storage.from('cover-artwork').getPublicUrl(path).data.publicUrl}
      if(preview){const path=await upload('song-previews',preview,'mp3');fields.preview_audio_path=client.storage.from('song-previews').getPublicUrl(path).data.publicUrl}
      const result=existing?await client.from('songs').update(fields).eq('id',id).select('id').single():await client.from('songs').insert({...fields,id}).select('id').single();
@@ -139,19 +139,34 @@
      if(!Number.isSafeInteger(goal)||goal<1||(mode==='custom'&&!announcement)){displayStatus.textContent='Enter a valid goal or announcement.';return}
      const button=form.querySelector('button');button.disabled=true;
      try{
-       const {data,error}=await client.from('site_settings').update({subscriber_mode:mode,subscriber_goal:goal,custom_message:announcement}).eq('id',1).select('id').single();
+       const {data,error}=await client.from('site_settings').update({subscriber_mode:mode,subscriber_goal:goal,custom_message:announcement,show_online_count:form.elements.online.checked,maintenance_mode:form.elements.maintenance.checked}).eq('id',1).select('id').single();
        displayStatus.textContent=!error&&data?.id===1?'Settings saved.':'Save failed. Check administrator access.';
      }catch{displayStatus.textContent='Save failed. Try again.'}finally{button.disabled=false}
    });
-   const settings=await client.from('site_settings').select('subscriber_mode,subscriber_goal,custom_message').eq('id',1).single();
+   const settings=await client.from('site_settings').select('subscriber_mode,subscriber_goal,custom_message,show_online_count,maintenance_mode').eq('id',1).single();
    if(settings.error||!settings.data){displayStatus.textContent='Display settings unavailable.'}else{
      form.elements.mode.value=settings.data.subscriber_mode;
      form.elements.goal.value=settings.data.subscriber_goal;
      form.elements.announcement.value=settings.data.custom_message;
-     form.hidden=false;
+     form.elements.online.checked=settings.data.show_online_count;form.elements.maintenance.checked=settings.data.maintenance_mode;form.hidden=false;
    }
    client.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'){fail('You have signed out.');editor.reset();songs=[];catalog.replaceChildren()}});
    await loadCatalog();
+   const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n)/100);
+   function table(target,title,headers,rows){const h=document.createElement('h3');h.textContent=title;target.append(h);const t=document.createElement('table');t.className='admin-table';for(const [i,values] of [headers,...rows].entries()){const r=document.createElement('tr');for(const v of values){const cell=document.createElement(i?'td':'th');cell.textContent=String(v??'—');r.append(cell)}t.append(r)}target.append(t);if(!rows.length){const p=document.createElement('p');p.textContent='No records yet.';target.append(p)}}
+   async function refreshBusiness(){
+     const button=document.getElementById('business-refresh');button.disabled=true;
+     const b=document.getElementById('business-data'),c=document.getElementById('customer-data'),a=document.getElementById('activity-data');
+     for(const el of [b,c,a])el.textContent='Loading…';
+     try{
+       const [overview,customers,activity]=await Promise.all([client.rpc('admin_business_overview'),client.rpc('admin_customer_overview'),client.from('admin_activity').select('action,created_at').order('created_at',{ascending:false}).limit(100)]);
+       b.replaceChildren();c.replaceChildren();a.replaceChildren();
+       if(overview.error)b.textContent='Business data unavailable: '+overview.error.message;else{const d=overview.data;table(b,'Live business statistics',['Metric','Value'],[['Verified fans',d.registered_fans],['Recorded paid revenue (gross USD)',money(d.revenue_cents)],['Songs sold',d.songs_sold],['Pending payments',d.pending_payments],['Releases',d.total_releases],['Published',d.published_releases],['Private tracks',d.private_tracks],['Music storage used (MiB)',(Number(d.storage_bytes)/1048576).toFixed(2)]]);table(b,'Sales by song',['Song','Sales','Gross USD'],(d.sales_by_song||[]).map(x=>[x.title,x.sales,money(x.revenue_cents)]))}
+       if(customers.error)c.textContent='Customer data unavailable: '+customers.error.message;else{table(c,'Recent customers (up to 100)',['Email','Joined','Verified','Purchases'],(customers.data.customers||[]).map(x=>[x.email,new Date(x.created_at).toLocaleString(),x.verified?'Yes':'No',x.purchases]));table(c,'Recent payments (up to 100)',['Song','Amount','Status','Reference','Created','Paid'],(customers.data.payments||[]).map(x=>[x.title,money(x.amount_cents),x.payment_status,x.payment_reference,new Date(x.created_at).toLocaleString(),x.paid_at?new Date(x.paid_at).toLocaleString():'—']))}
+       if(activity.error)a.textContent='Activity unavailable: '+activity.error.message;else table(a,'Recent administrator activity',['Action','Date'],(activity.data||[]).map(x=>[x.action,new Date(x.created_at).toLocaleString()]));
+     }catch{for(const el of [b,c,a])el.textContent='Unable to load business data. Try refreshing.'}finally{button.disabled=false}
+   }
+   document.getElementById('business-refresh').addEventListener('click',refreshBusiness);await refreshBusiness();
  }catch(err){fail('Unable to verify administrator access. Please try again.')}
 })();
 </script></body></html>
