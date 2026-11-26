@@ -25,7 +25,19 @@
       <div aria-hidden="true" style="width:1px;height:42px;background:#343b48"></div>
       <div><strong id="online-count" style="display:block;font-size:26px;color:#35e580;font-variant-numeric:tabular-nums">(—)</strong><small style="color:#aab4c5">Online now</small></div>
     </section>
-    <section class="hero" id="home">
+    <section id="home" style="position:relative;background:#07090d">
+      <div id="banner-home" hidden style="position:relative;width:100%;max-width:100%;margin:auto">
+        <img src="assets/home-banner.webp" alt="HDmiLuchi — Independent. Unfiltered. Unstoppable." style="display:block;width:100%;height:auto" onload="document.getElementById('banner-home').hidden=false;document.getElementById('home-fallback').style.display='none'">
+        <nav aria-label="Homepage navigation" style="display:block;position:absolute;inset:86.7% 0 0; background:transparent;padding:0;margin:0">
+          <a href="#home" aria-label="Home" title="Home" style="position:absolute;top:0;bottom:0;left:0%;width:16.5%;display:block;background:transparent;border:0;padding:0"></a>
+          <a href="#store" aria-label="Music Store" title="Music Store" style="position:absolute;top:0;bottom:0;left:16.5%;width:17.1%;display:block;background:transparent;border:0;padding:0"></a>
+          <a href="#library" aria-label="My Music" title="My Music" style="position:absolute;top:0;bottom:0;left:33.6%;width:14.1%;display:block;background:transparent;border:0;padding:0"></a>
+          <a href="#bitcoin" aria-label="Bitcoin Help" title="Bitcoin Help" style="position:absolute;top:0;bottom:0;left:47.7%;width:17.1%;display:block;background:transparent;border:0;padding:0"></a>
+          <a href="#contact" aria-label="Contact" title="Contact" style="position:absolute;top:0;bottom:0;left:64.8%;width:18.2%;display:block;background:transparent;border:0;padding:0"></a>
+          <a href="#account" aria-label="Account" title="Account" style="position:absolute;top:0;bottom:0;left:83%;width:17%;display:block;background:transparent;border:0;padding:0"></a>
+        </nav>
+      </div>
+    <section class="hero" id="home-fallback">
       <div class="hero-copy">
         <p class="eyebrow"><span></span> INDEPENDENT. UNFILTERED. UNSTOPPABLE.</p>
         <h1>THE SOUND.<br><em>THE OWNERSHIP.</em></h1>
@@ -34,6 +46,7 @@
       </div>
       <div class="hero-orbit" aria-hidden="true"><div class="orbit-ring"></div><div class="orbit-core">HD<br><small>ML</small></div></div>
       <div class="hero-foot"><span>HDMILUCHI AUDIO EXPERIENCE</span><span>EST. INDEPENDENT</span></div>
+    </section>
     </section>
 
     <section class="section store" id="store">
