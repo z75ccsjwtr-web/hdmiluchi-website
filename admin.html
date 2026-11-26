@@ -15,7 +15,7 @@
 <div class="admin-card"><p id="status" class="admin-status" role="status" aria-live="polite">Checking your sign-in and administrator permission…</p>
 <div id="denied" hidden><p>This page requires your approved HDmiLuchi administrator account. Sign in on the main website first.</p><a class="button" href="index.html#account">ACCOUNT SIGN-IN</a></div>
 <div id="approved" hidden><h2>ADMINISTRATOR VERIFIED</h2><p>Your administrator status was confirmed by Supabase. Manage your catalog below. Storefront synchronization is not yet enabled.</p>
-<h3 style="font-size:26px;margin-top:24px">PRIVATE OWNER MUSIC</h3><p>Listen to your uploaded full tracks without recording a purchase.</p><button id="owner-refresh" class="button" type="button">REFRESH PRIVATE MUSIC</button><div id="owner-tracks"></div><audio id="owner-player" controls controlslist="nodownload" style="width:100%" hidden></audio><p id="owner-status" role="status"></p><h3 style="font-size:26px;margin-top:24px">FAN ACCESS MANAGER</h3><p>Grant complimentary access to individual verified fans. Existing paid purchases are unaffected. Revocation prevents new playback links; existing links may last up to 10 minutes.</p><button id="gift-refresh" class="button" type="button">REFRESH FAN ACCESS</button><form id="gift-form" class="auth-form" hidden><label>Verified fan<select name="fan" required></select></label><label>Private full song<select name="track" required></select></label><label>Expiration (optional, local time)<input type="datetime-local" name="expiry"></label><button class="button" type="submit">GRANT / UPDATE ACCESS</button></form><p id="gift-status" role="status"></p><div id="gift-list" style="overflow-x:auto"></div><h3 style="font-size:26px;margin-top:24px">BUSINESS OVERVIEW</h3><button id="business-refresh" class="button" type="button">REFRESH BUSINESS DATA</button><div id="storage-meters"></div><div id="business-data" style="overflow-x:auto"></div><div id="customer-data" style="overflow-x:auto"></div><div id="activity-data" style="overflow-x:auto"></div><h3 style="font-size:26px;margin-top:24px">WEBSITE DISPLAY</h3>
+<h3 style="font-size:26px;margin-top:24px">PRIVATE OWNER MUSIC</h3><p>Listen to your uploaded full tracks without recording a purchase.</p><button id="owner-refresh" class="button" type="button">REFRESH PRIVATE MUSIC</button><div id="owner-tracks"></div><audio id="owner-player" controls controlslist="nodownload" style="width:100%" hidden></audio><p id="owner-status" role="status"></p><h3 style="font-size:26px;margin-top:24px">FAN ACCESS MANAGER</h3><p>Grant complimentary access to individual verified fans. Existing paid purchases are unaffected. Revocation prevents new playback links; existing links may last up to 10 minutes.</p><button id="gift-refresh" class="button" type="button">REFRESH FAN ACCESS</button><form id="gift-form" class="auth-form" hidden><label>Verified fan<select name="fan" required></select></label><label>Private full song<select name="track" required></select></label><label>Expiration (optional, local time)<input type="datetime-local" name="expiry"></label><button class="button" type="submit">GRANT / UPDATE ACCESS</button></form><p id="gift-status" role="status"></p><div id="gift-list" style="overflow-x:auto"></div><h3 style="font-size:26px;margin-top:24px">FAN ACCOUNT MANAGEMENT</h3><p>Suspend or restore fan accounts. Permanent removal is irreversible and is blocked by the database when purchase records exist. Existing playback links may remain valid until expiration.</p><button id="fan-account-refresh" class="button" type="button">REFRESH FAN ACCOUNTS</button><p id="fan-account-status" role="status"></p><div id="fan-account-list"></div><h3 style="font-size:26px;margin-top:24px">BUSINESS OVERVIEW</h3><button id="business-refresh" class="button" type="button">REFRESH BUSINESS DATA</button><div id="storage-meters"></div><div id="business-data" style="overflow-x:auto"></div><div id="customer-data" style="overflow-x:auto"></div><div id="activity-data" style="overflow-x:auto"></div><h3 style="font-size:26px;margin-top:24px">WEBSITE DISPLAY</h3>
 <form id="display-settings" class="auth-form" hidden>
 <label for="display-mode">Subscriber display</label><select id="display-mode" name="mode"><option value="live">Live count</option><option value="goal">Fan goal</option><option value="custom">Public announcement</option><option value="hidden">Hidden</option></select>
 <label>Fan goal<input name="goal" type="number" min="1" max="9007199254740991" required></label>
@@ -34,7 +34,7 @@
 <label><input name="prepared" type="checkbox"> I confirm any selected files are prepared copies, checked for metadata, and the public preview is not a full track.</label>
 <p class="tiny">Artwork and previews are publicly accessible once uploaded, even for drafts. Full tracks go only to private storage. Replacements use new files; old files are retained. The public storefront still uses its original listings.</p>
 <button type="submit" class="button">SAVE RELEASE</button><p id="song-status" role="status"></p></form>
-<p class="tiny">Checkout and permanent deletion are disabled.</p>
+<p class="tiny">Checkout and permanent song deletion are disabled.</p>
 <button id="refresh" class="button" type="button">REFRESH CATALOG</button></div></div></main>
 <footer>HDmiLuchi🎧 <span>PRIVATE ADMIN ACCESS · SERVER-VERIFIED</span></footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script>
@@ -201,6 +201,45 @@
    gr.addEventListener('click',loadGifts);
    client.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT'){giftVersion++;gf.reset();gf.hidden=true;gf.elements.fan.replaceChildren();gf.elements.track.replaceChildren();gl.replaceChildren();gs.textContent=''}});
    await loadGifts();
+
+   const fal=document.getElementById('fan-account-list'),fas=document.getElementById('fan-account-status'),far=document.getElementById('fan-account-refresh');
+   let fanVersion=0,fanBusy=false,fanClosed=false;
+   async function loadFanAccounts(){
+     const version=++fanVersion;far.disabled=true;fal.replaceChildren();fas.textContent='Loading fan accounts…';
+     try{
+       const r=await client.rpc('admin_manage_fans');
+       if(version!==fanVersion||fanClosed)return;
+       if(r.error||!Array.isArray(r.data))throw Error(r.error?.message||'Unexpected fan list');
+       fas.textContent=r.data.length+' fan account(s) returned.';
+       for(const fan of r.data){
+         if(!fan.user_id||fan.user_id===user.id)continue;
+         const box=document.createElement('div');box.style.cssText='padding:12px 0;border-bottom:1px solid #315273;overflow-wrap:anywhere';
+         const p=document.createElement('p');p.textContent=(fan.email||fan.user_id)+' — '+(fan.suspended?'Suspended':'Active')+' · '+(fan.verified?'Verified':'Unverified');box.append(p);
+         for(const action of [fan.suspended?'Restore':'Suspend','Remove']){
+           const b=document.createElement('button');b.type='button';b.className='button';b.textContent=action.toUpperCase()+' FAN';b.style.marginRight='8px';if(action==='Remove')b.style.borderColor='#f87171';
+           b.addEventListener('click',async()=>{
+             if(fanBusy||fanClosed||version!==fanVersion)return;
+             const label=fan.email||fan.user_id;
+             if(action==='Remove'){if(prompt('Permanent removal of '+label+'. Type REMOVE to confirm. Purchase records must be preserved.')!=='REMOVE')return;}
+             else if(!confirm(action+' '+label+'?'))return;
+             fanBusy=true;far.disabled=true;for(const x of fal.querySelectorAll('button'))x.disabled=true;
+             try{
+               const auth=await client.rpc('is_admin');if(auth.error||auth.data!==true||fanClosed)throw Error('Administrator authorization required.');
+               const result=action==='Remove'?await client.rpc('admin_remove_fan',{target_user_id:fan.user_id}):await client.rpc('admin_set_fan_suspension',{target_user_id:fan.user_id,suspend_account:action==='Suspend'});
+               if(result.error)throw Error(result.error.message);
+               if(fanClosed)return;
+               await loadFanAccounts();if(!fanClosed){fas.textContent='Request completed. Check the refreshed account list.';await Promise.allSettled([loadGifts(),refreshBusiness()]);}
+             }catch(e){if(!fanClosed)fas.textContent='Action failed: '+e.message;}
+             finally{fanBusy=false;if(!fanClosed){far.disabled=false;for(const x of fal.querySelectorAll('button'))x.disabled=false;}}
+           });box.append(b);
+         }fal.append(box);
+       }
+     }catch(e){if(version===fanVersion&&!fanClosed)fas.textContent='Fan accounts unavailable: '+e.message;}
+     finally{if(version===fanVersion&&!fanClosed)far.disabled=fanBusy;}
+   }
+   far.addEventListener('click',()=>{if(!fanBusy&&!fanClosed)loadFanAccounts()});
+   client.auth.onAuthStateChange(event=>{if(event==='SIGNED_OUT'){fanClosed=true;fanVersion++;fal.replaceChildren();fas.textContent='';far.disabled=true;}});
+   await loadFanAccounts();
 
  }catch(err){fail('Unable to verify administrator access. Please try again.')}
 })();
