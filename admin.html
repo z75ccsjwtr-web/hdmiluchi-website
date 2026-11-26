@@ -14,7 +14,7 @@
 <main class="admin-wrap"><p class="eyebrow">PRIVATE MANAGEMENT</p><h1 style="font-size:clamp(45px,8vw,76px)">ARTIST <em>DASHBOARD</em></h1>
 <div class="admin-card"><p id="status" class="admin-status" role="status" aria-live="polite">Checking your sign-in and administrator permission…</p>
 <div id="denied" hidden><p>This page requires your approved HDmiLuchi administrator account. Sign in on the main website first.</p><a class="button" href="index.html#account">ACCOUNT SIGN-IN</a></div>
-<div id="approved" hidden><h2>ADMINISTRATOR VERIFIED</h2><p>Your administrator status was confirmed by Supabase. Song management will be enabled only after its permissions and workflow are tested.</p>
+<div id="approved" hidden><h2>ADMINISTRATOR VERIFIED</h2><p>Your administrator status was confirmed by Supabase. Manage your catalog below. Storefront synchronization is not yet enabled.</p>
 <h3 style="font-size:26px;margin-top:24px">WEBSITE DISPLAY</h3>
 <form id="display-settings" class="auth-form" hidden>
 <label for="display-mode">Subscriber display</label><select id="display-mode" name="mode"><option value="live">Live count</option><option value="goal">Fan goal</option><option value="custom">Public announcement</option><option value="hidden">Hidden</option></select>
@@ -22,7 +22,19 @@
 <label>Public announcement<input name="announcement" maxlength="120"></label>
 <button class="button" type="submit">SAVE DISPLAY SETTINGS</button></form><p id="display-status" role="status"></p>
 <h3 style="font-size:26px;margin-top:24px">SONG CATALOG</h3><div id="catalog" aria-live="polite">Loading catalog…</div>
-<p class="tiny">Song catalog is read-only. Music, prices and purchases cannot be changed yet.</p>
+<form id="song-editor" class="auth-form" hidden>
+<label>Release<select name="song"><option value="">New release</option></select></label>
+<label>Title<input name="title" required maxlength="150"></label>
+<label>Price (USD)<input name="price" type="number" min="0.01" max="100000" step="0.01" value="1.99" required></label>
+<label>Display order<input name="order" type="number" min="0" max="100000" step="1" value="0" required></label>
+<label><input name="published" type="checkbox"> Published in database</label>
+<label>Cover artwork (JPEG, PNG, WebP)<input name="cover" type="file" accept="image/jpeg,image/png,image/webp"></label>
+<label>Public preview (MP3, 15–30 seconds)<input name="preview" type="file" accept=".mp3,audio/mpeg"></label>
+<label>Private full track (MP3)<input name="full" type="file" accept=".mp3,audio/mpeg"></label>
+<label><input name="prepared" type="checkbox"> I confirm any selected files are prepared copies, checked for metadata, and the public preview is not a full track.</label>
+<p class="tiny">Artwork and previews are publicly accessible once uploaded, even for drafts. Full tracks go only to private storage. Replacements use new files; old files are retained. The public storefront still uses its original listings.</p>
+<button type="submit" class="button">SAVE RELEASE</button><p id="song-status" role="status"></p></form>
+<p class="tiny">Checkout and permanent deletion are disabled.</p>
 <button id="refresh" class="button" type="button">REFRESH CATALOG</button></div></div></main>
 <footer>HDmiLuchi🎧 <span>PRIVATE ADMIN ACCESS · SERVER-VERIFIED</span></footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script>
@@ -33,10 +45,79 @@
  function fail(msg){status.textContent=msg;denied.hidden=false;approved.hidden=true}
  if(!config?.url||!config?.publishableKey||!window.supabase?.createClient){fail('Account service is unavailable. Return to the site and try again.');return}
  const client=window.supabase.createClient(config.url,config.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+ const editor=document.getElementById('song-editor'), songStatus=document.getElementById('song-status');
+ let songs=[];
+ function fillEditor(){
+   const s=songs.find(x=>x.id===editor.elements.song.value);
+   editor.elements.title.value=s?.title||'';
+   editor.elements.price.value=((s?.price_cents??199)/100).toFixed(2);
+   editor.elements.order.value=s?.display_order??0;
+   editor.elements.published.checked=s?.is_published===true;
+   for(const name of ['cover','preview','full']) editor.elements[name].value='';
+   editor.elements.prepared.checked=false;
+ }
+ editor.elements.song.addEventListener('change',fillEditor);
+ async function upload(bucket,file,ext){
+   const path=crypto.randomUUID()+'.'+ext;
+   const {error}=await client.storage.from(bucket).upload(path,file,{upsert:false,contentType:bucket==='cover-artwork'?file.type:'audio/mpeg'});
+   if(error) throw Error(error.message);
+   return path;
+ }
+ async function checkPreview(file){
+   const url=URL.createObjectURL(file), audio=document.createElement('audio');
+   try{
+     const duration=await new Promise((resolve,reject)=>{
+       const timer=setTimeout(()=>reject(Error('Preview could not be checked.')),10000);
+       audio.onloadedmetadata=()=>{clearTimeout(timer);resolve(audio.duration)};
+       audio.onerror=()=>{clearTimeout(timer);reject(Error('Preview could not be read.'))};
+       audio.preload='metadata';audio.src=url;
+     });
+     if(!Number.isFinite(duration)||duration<15||duration>30.5)throw Error('Preview must be 15–30 seconds.');
+   }finally{audio.removeAttribute('src');audio.load();URL.revokeObjectURL(url)}
+ }
+ editor.addEventListener('submit',async event=>{
+   event.preventDefault();
+   const e=editor.elements, existing=songs.find(s=>s.id===e.song.value);
+   const cover=e.cover.files[0],preview=e.preview.files[0],full=e.full.files[0];
+   const title=e.title.value.trim(),price=Math.round(Number(e.price.value)*100),order=Number(e.order.value),published=e.published.checked;
+   const ext=cover?({'image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[cover.type]):null;
+   if(!title||!Number.isSafeInteger(price)||price<1||price>10000000||!Number.isInteger(order)||order<0||order>100000){songStatus.textContent='Check title, price and order.';return}
+   if((cover||preview||full)&&!e.prepared.checked){songStatus.textContent='Confirm prepared copies first.';return}
+   if((cover&&(!ext||cover.size>10485760))||(preview&&(!/\.mp3$/i.test(preview.name)||preview.size>10485760))||(full&&(!/\.mp3$/i.test(full.name)||full.size>26214400))){songStatus.textContent='Check file formats and size limits.';return}
+   if(preview&&full&&preview.name===full.name&&preview.size===full.size){songStatus.textContent='Preview and full track must be separate files.';return}
+   const button=editor.querySelector('button');button.disabled=true;document.getElementById('refresh').disabled=true;
+   const id=existing?.id||crypto.randomUUID();
+   try{
+     const auth=await client.rpc('is_admin');if(auth.error||auth.data!==true)throw Error('Administrator authorization required.');
+     if(preview)await checkPreview(preview);
+     songStatus.textContent='Saving release…';
+     const fields={title,price_cents:price,display_order:order,is_published:published};
+     if(cover){const path=await upload('cover-artwork',cover,ext);fields.cover_image_path=client.storage.from('cover-artwork').getPublicUrl(path).data.publicUrl}
+     if(preview){const path=await upload('song-previews',preview,'mp3');fields.preview_audio_path=client.storage.from('song-previews').getPublicUrl(path).data.publicUrl}
+     const result=existing?await client.from('songs').update(fields).eq('id',id).select('id').single():await client.from('songs').insert({...fields,id}).select('id').single();
+     if(result.error||result.data?.id!==id)throw Error(result.error?.message||'Catalog save failed.');
+     if(full){
+       const path=await upload('purchased-music',full,'mp3');
+       const old=await client.from('song_private_files').select('song_id').eq('song_id',id).maybeSingle();
+       if(old.error)throw Error(old.error.message);
+       const mapping=old.data?await client.from('song_private_files').update({audio_path:path}).eq('song_id',id).select('song_id').single():await client.from('song_private_files').insert({song_id:id,audio_path:path}).select('song_id').single();
+       if(mapping.error||mapping.data?.song_id!==id)throw Error(mapping.error?.message||'Private mapping failed.');
+     }
+     await loadCatalog();editor.elements.song.value=id;fillEditor();songStatus.textContent='Release saved in database.';
+   }catch(err){songStatus.textContent='Save incomplete: '+err.message+' Some files or catalog changes may already be saved. Refresh catalog before retrying.'}
+   finally{button.disabled=false;document.getElementById('refresh').disabled=false}
+ });
  async function loadCatalog(){
    catalog.textContent='Loading catalog…';
-   const {data,error}=await client.from('songs').select('*').limit(50);
+   const {data,error}=await client.from('songs').select('*').order('display_order').order('created_at').limit(1000);
    if(error){catalog.textContent='Catalog could not load: '+error.message;return}
+   songs=data||[];
+   const selected=editor.elements.song.value;
+   editor.elements.song.replaceChildren(new Option('New release',''));
+   for(const song of songs) editor.elements.song.add(new Option(song.title,song.id));
+   if(songs.some(s=>s.id===selected)) editor.elements.song.value=selected;
+   fillEditor();
+   editor.hidden=false;
    if(!data?.length){catalog.textContent='No songs are visible to this account yet.';return}
    const table=document.createElement('table');table.className='admin-table';
    const head=document.createElement('tr');for(const name of ['Song','Published']){const th=document.createElement('th');th.textContent=name;head.append(th)}table.append(head);
@@ -69,8 +150,8 @@
      form.elements.announcement.value=settings.data.custom_message;
      form.hidden=false;
    }
+   client.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'){fail('You have signed out.');editor.reset();songs=[];catalog.replaceChildren()}});
    await loadCatalog();
-   client.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'){fail('You have signed out.')}})
  }catch(err){fail('Unable to verify administrator access. Please try again.')}
 })();
 </script></body></html>
