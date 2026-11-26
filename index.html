@@ -88,8 +88,8 @@
     </section>
 
     <section class="section split" id="library">
-      <div><p class="eyebrow">YOUR COLLECTION</p><h2>MY <em>MUSIC</em></h2><p class="muted">Your purchased tracks will live here once fan accounts and secure sign-in are connected.</p></div>
-      <div class="locked-panel"><span class="lock">⌑</span><strong>FAN LIBRARY</strong><small>ACCOUNT SYSTEM NOT CONNECTED YET</small></div>
+      <div><p class="eyebrow">YOUR COLLECTION</p><h2>MY <em>MUSIC</em></h2><p class="muted">Sign in to access your purchased tracks.</p></div>
+      <div class="locked-panel"><span class="lock">⌑</span><strong>FAN LIBRARY</strong><div id="fan-library" role="status" style="width:100%">Sign in to access your purchased music.</div></div>
     </section>
 
     <section class="section split bitcoin" id="bitcoin">
@@ -99,7 +99,7 @@
 
     <section class="section split" id="account">
       <div><p class="eyebrow">FAN ACCESS</p><h2>YOUR <em>ACCOUNT</em></h2><p class="muted">Create a fan account or sign in to access your personal music area. Use an email address you can access to confirm registration.</p>
-        <div class="info-panel"><strong>PRIVATE FAN ACCESS</strong><p>Fan accounts are separate from the private administrator account. Registration does not yet unlock music purchases; checkout and the purchased library will be connected in a later step.</p></div>
+        <div class="info-panel"><strong>PRIVATE FAN ACCESS</strong><p>Fan accounts are separate from the private administrator account. Registration gives you access to your personal library. Bitcoin checkout is not yet enabled.</p></div>
       </div>
       <div class="account-panel">
         <div id="account-forms">
@@ -139,6 +139,6 @@
   <footer><span>© <span id="year"></span> HDmiLuchi🎧</span><span>INDEPENDENT BY DESIGN.</span></footer>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
-  <script src="script.js"></script>
+  <script src="script.js?v=fan-library-1"></script>
 </body>
 </html>
