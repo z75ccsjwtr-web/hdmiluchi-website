@@ -97,7 +97,17 @@
      const headers={apikey:config.publishableKey};if(config.publishableKey.startsWith('eyJ'))headers.Authorization='Bearer '+config.publishableKey;
      const response=await fetch(url,{headers,credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(15000)});
      if(version!==verifyVersion)return;
-     if(!response.ok){line('Public catalog connection: HTTP '+response.status+' — needs review.');return}
+     if(!response.ok){
+       let detail=null;try{detail=await response.json()}catch{}
+       if(version!==verifyVersion)return;
+       line('Public catalog connection: HTTP '+response.status+' — needs review.');
+       if(detail&&typeof detail==='object'){
+         const code=typeof detail.code==='string'?detail.code:'';
+         const message=typeof detail.message==='string'?detail.message:'';
+         if(code||message)line('Database diagnostic: '+[code,message].filter(Boolean).join(' — ').slice(0,400));
+       }
+       return;
+     }
      const rows=await response.json();if(!Array.isArray(rows))throw Error('Unexpected public catalog response');
      line('Public catalog connection: OK — '+rows.length+' published releases visible when signed out.');
      line(rows.some(t=>t.id===id)?'Selected release is publicly readable in the catalog.':s.is_published?'Selected release is marked published but not publicly readable.':'Selected draft is not exposed through the public catalog.');
