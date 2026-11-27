@@ -19,6 +19,12 @@
 main > section[hidden], .room-return[hidden], .topbar[hidden], footer[hidden]{display:none!important}
 .room-return{padding:16px 20px;background:#090b10;border-bottom:1px solid #285fa8}
 .room-return a{color:#8fcfff;text-decoration:none;font-weight:bold}
+body.home-room{background:#07090d}
+body.home-room #home:not([hidden]){min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:0}
+body.home-room #banner-home:not([hidden]){width:min(100%,calc((100dvh - 100px) * 1.779))!important;margin:0 auto!important}
+body.home-room .home-counters{width:min(100%,calc((100dvh - 100px) * 1.779));flex-shrink:0}
+#banner-home nav{inset:86.7% 0 0!important;border:0!important}
+#banner-home[hidden]{display:none!important}
 </style>
 </head>
 <body>
@@ -188,6 +194,7 @@ main > section[hidden], .room-return[hidden], .topbar[hidden], footer[hidden]{di
     function showRoom() {
       const hash = location.hash.slice(1);
       const room = hash === 'second-release' ? 'store' : rooms.has(hash) ? hash : 'home';
+      document.body.classList.toggle('home-room', room === 'home');
       for (const section of sections) {
         const visible = section.id === room || (room === 'store' && section.id === 'second-release');
         if (!visible) section.querySelectorAll('audio').forEach(audio => audio.pause());
