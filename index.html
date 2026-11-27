@@ -25,6 +25,19 @@ body.home-room #banner-home:not([hidden]){width:min(100%,calc((100dvh - 100px) *
 body.home-room .home-counters{width:min(100%,calc((100dvh - 100px) * 1.779));flex-shrink:0}
 #banner-home nav{inset:86.7% 0 0!important;border:0!important}
 #banner-home[hidden]{display:none!important}
+
+/* Portrait and narrow-screen homepage: preserve artwork proportions. */
+@media (max-aspect-ratio: 6/5) {
+ body.home-room #home:not([hidden]){height:100vh;height:100dvh;min-height:0;justify-content:flex-start;overflow:hidden}
+ body.home-room #banner-home:not([hidden]){width:100%!important;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;isolation:isolate;overflow:hidden}
+ #banner-home::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(4,10,23,.25),rgba(4,10,23,.55)),url("assets/home-banner.webp") center/cover no-repeat;filter:blur(12px);transform:scale(1.08)}
+ #banner-home>img{width:100%!important;height:auto!important;clip-path:inset(0 0 13.3% 0);margin-top:-8%;filter:drop-shadow(0 0 16px #071b3c)}
+ #banner-home nav{inset:auto 0 0!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));background:#070b14!important;border-top:1px solid #429aff!important;z-index:2}
+ #banner-home nav a{position:static!important;width:auto!important;min-height:54px;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#d8eaff!important;border:1px solid #20416a!important;font-size:clamp(10px,2.8vw,14px);letter-spacing:.04em;text-transform:uppercase;text-decoration:none}
+ #banner-home nav a::before{content:attr(data-symbol);font-size:20px;color:#62c9ff;line-height:1}
+ #banner-home nav a::after{content:attr(aria-label)}
+ body.home-room .home-counters{width:100%;padding-bottom:max(10px,env(safe-area-inset-bottom));box-sizing:border-box}
+}
 </style>
 </head>
 <body>
@@ -45,12 +58,12 @@ body.home-room .home-counters{width:min(100%,calc((100dvh - 100px) * 1.779));fle
         <img src="assets/home-banner.webp" alt="HDmiLuchi — Independent. Unfiltered. Unstoppable." style="display:block;width:100%;height:auto" onload="document.getElementById('banner-home').hidden=false;document.getElementById('home-fallback').style.display='none'">
         <div class="sky-stars" aria-hidden="true"><i style="left:4%;top:7%;animation-delay:0s;animation-duration:3s"></i><i style="left:8%;top:12%;animation-delay:-0.73s;animation-duration:4s"></i><i style="left:25%;top:5%;animation-delay:-1.46s;animation-duration:5s"></i><i style="left:42%;top:4%;animation-delay:-2.19s;animation-duration:6s"></i><i style="left:47%;top:9%;animation-delay:-2.92s;animation-duration:3s"></i><i style="left:67%;top:5%;animation-delay:-3.65s;animation-duration:4s"></i><i style="left:72%;top:9%;animation-delay:-4.38s;animation-duration:5s"></i><i style="left:89%;top:5%;animation-delay:-5.109999999999999s;animation-duration:6s"></i><i style="left:95%;top:12%;animation-delay:-5.84s;animation-duration:3s"></i><i style="left:58%;top:3%;animation-delay:-6.57s;animation-duration:4s"></i><i style="left:14%;top:4%;animation-delay:-7.3s;animation-duration:5s"></i><i style="left:80%;top:3%;animation-delay:-8.03s;animation-duration:6s"></i></div>
         <nav aria-label="Homepage navigation" style="display:block;position:absolute;inset:86.7% 0 0; background:transparent;padding:0;margin:0">
-          <a href="#home" aria-label="Home" title="Home" style="position:absolute;top:0;bottom:0;left:0%;width:16.5%;display:block;background:transparent;border:0;padding:0"></a>
-          <a href="#store" aria-label="Music Store" title="Music Store" style="position:absolute;top:0;bottom:0;left:16.5%;width:17.1%;display:block;background:transparent;border:0;padding:0"></a>
-          <a href="#library" aria-label="My Music" title="My Music" style="position:absolute;top:0;bottom:0;left:33.6%;width:14.1%;display:block;background:transparent;border:0;padding:0"></a>
-          <a href="#bitcoin" aria-label="Bitcoin Help" title="Bitcoin Help" style="position:absolute;top:0;bottom:0;left:47.7%;width:17.1%;display:block;background:transparent;border:0;padding:0"></a>
-          <a href="#contact" aria-label="Contact" title="Contact" style="position:absolute;top:0;bottom:0;left:64.8%;width:18.2%;display:block;background:transparent;border:0;padding:0"></a>
-          <a href="#account" aria-label="Account" title="Account" style="position:absolute;top:0;bottom:0;left:83%;width:17%;display:block;background:transparent;border:0;padding:0"></a>
+          <a href="#home" aria-label="Home" data-symbol="⌂" title="Home" style="position:absolute;top:0;bottom:0;left:0%;width:16.5%;display:block;background:transparent;border:0;padding:0"></a>
+          <a href="#store" aria-label="Music Store" data-symbol="♫" title="Music Store" style="position:absolute;top:0;bottom:0;left:16.5%;width:17.1%;display:block;background:transparent;border:0;padding:0"></a>
+          <a href="#library" aria-label="My Music" data-symbol="♬" title="My Music" style="position:absolute;top:0;bottom:0;left:33.6%;width:14.1%;display:block;background:transparent;border:0;padding:0"></a>
+          <a href="#bitcoin" aria-label="Bitcoin Help" data-symbol="₿" title="Bitcoin Help" style="position:absolute;top:0;bottom:0;left:47.7%;width:17.1%;display:block;background:transparent;border:0;padding:0"></a>
+          <a href="#contact" aria-label="Contact" data-symbol="✉" title="Contact" style="position:absolute;top:0;bottom:0;left:64.8%;width:18.2%;display:block;background:transparent;border:0;padding:0"></a>
+          <a href="#account" aria-label="Account" data-symbol="♙" title="Account" style="position:absolute;top:0;bottom:0;left:83%;width:17%;display:block;background:transparent;border:0;padding:0"></a>
         </nav>
       </div>
     <section class="hero" id="home-fallback">
