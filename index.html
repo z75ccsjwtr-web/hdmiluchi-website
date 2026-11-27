@@ -16,6 +16,9 @@
 @keyframes hdm-twinkle{0%,100%{opacity:.12;transform:scale(.6)}50%{opacity:.95;transform:scale(1.2)}}
 @media(prefers-reduced-motion:reduce){.sky-stars i{animation:none;opacity:.35}}
 #banner-home nav a:focus-visible{outline:2px solid #8fcfff;outline-offset:-3px}
+main > section[hidden], .room-return[hidden], .topbar[hidden], footer[hidden]{display:none!important}
+.room-return{padding:16px 20px;background:#090b10;border-bottom:1px solid #285fa8}
+.room-return a{color:#8fcfff;text-decoration:none;font-weight:bold}
 </style>
 </head>
 <body>
@@ -29,6 +32,7 @@
     </nav>
   </header>
 
+  <div class="room-return" hidden><a href="#home">← BACK TO HOME</a></div>
   <main>
     <section id="home" style="position:relative;background:#07090d">
       <div id="banner-home" hidden style="position:relative;width:100%;max-width:100%;margin:auto">
@@ -177,6 +181,30 @@
     </section>
   </main>
   <footer><span>© <span id="year"></span> HDmiLuchi🎧</span><span>INDEPENDENT BY DESIGN.</span></footer>
+  <script>
+  (() => {
+    const rooms = new Set(['home','store','library','bitcoin','contact','account']);
+    const sections = Array.from(document.querySelectorAll('main > section'));
+    function showRoom() {
+      const hash = location.hash.slice(1);
+      const room = hash === 'second-release' ? 'store' : rooms.has(hash) ? hash : 'home';
+      for (const section of sections) {
+        const visible = section.id === room || (room === 'store' && section.id === 'second-release');
+        if (!visible) section.querySelectorAll('audio').forEach(audio => audio.pause());
+        section.hidden = !visible;
+      }
+      document.querySelector('.room-return').hidden = room === 'home';
+      document.querySelector('.topbar').hidden = room === 'home' && !document.getElementById('banner-home').hidden;
+      document.querySelector('footer').hidden = room === 'home';
+      window.scrollTo(0,0);
+    }
+    document.getElementById('banner-home').querySelector('img').addEventListener('load', () => {
+      if (!document.getElementById('home').hidden) document.querySelector('.topbar').hidden = true;
+    });
+    window.addEventListener('hashchange', showRoom);
+    showRoom();
+  })();
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="script.js?v=fan-library-1"></script>
