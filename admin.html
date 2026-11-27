@@ -35,6 +35,10 @@
 <p class="tiny">Artwork and previews are publicly accessible once uploaded, even for drafts. Full tracks go only to private storage. Replacements use new files; old files are retained. The public storefront still uses its original listings.</p>
 <button type="submit" class="button">SAVE RELEASE</button><p id="song-status" role="status"></p></form>
 <p class="tiny">Checkout and permanent song deletion are disabled.</p>
+<div style="margin:18px 0;padding:14px;border:1px solid #315273">
+<h3 style="font-size:20px">VERIFY SAVED RELEASE</h3><p class="tiny">Select an existing release above, then verify its saved artwork, preview, private track and public catalog connection. This does not publish or upload anything.</p>
+<button id="verify-release" class="button" type="button">VERIFY SELECTED RELEASE</button>
+<div id="release-verification" role="status" aria-live="polite"></div></div>
 <button id="refresh" class="button" type="button">REFRESH CATALOG</button></div></div></main>
 <footer>HDmiLuchi🎧 <span>PRIVATE ADMIN ACCESS · SERVER-VERIFIED</span></footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script>
@@ -57,6 +61,50 @@
    editor.elements.prepared.checked=false;
  }
  editor.elements.song.addEventListener('change',fillEditor);
+ const verification=document.getElementById('release-verification'), verifyButton=document.getElementById('verify-release');
+ let verifyVersion=0;
+ function clearVerification(){verifyVersion++;verification.querySelectorAll('audio').forEach(a=>{a.pause();a.removeAttribute('src');a.load()});verification.replaceChildren();verifyButton.disabled=false;}
+ editor.elements.song.addEventListener('change',clearVerification);
+ function mediaURL(raw,bucket){
+   if(!raw)return null;
+   try{const u=new URL(raw,location.href),project=new URL(config.url);
+     if(u.origin===location.origin&&u.pathname.startsWith('/assets/'))return u.href;
+     if(u.origin===project.origin&&u.pathname.startsWith('/storage/v1/object/public/'+bucket+'/'))return u.href;
+   }catch{}return null;
+ }
+ verifyButton.addEventListener('click',async()=>{
+   clearVerification();
+   const id=editor.elements.song.value, version=verifyVersion;
+   if(!id){verification.textContent='Choose an existing saved release first.';return}
+   verifyButton.disabled=true;
+   const line=(value)=>{const p=document.createElement('p');p.textContent=value;verification.append(p);return p};
+   line('Checking saved release…');
+   try{
+     const saved=await client.from('songs').select('id,title,is_published,cover_image_path,preview_audio_path').eq('id',id).single();
+     if(version!==verifyVersion)return;
+     if(saved.error||!saved.data)throw Error(saved.error?.message||'Release not found');
+     const s=saved.data;verification.replaceChildren();
+     line(s.title+' — '+(s.is_published?'Published in database':'Draft / unpublished'));
+     const cover=mediaURL(s.cover_image_path,'cover-artwork'), preview=mediaURL(s.preview_audio_path,'song-previews');
+     if(cover){const p=line('Artwork: loading…');const img=document.createElement('img');img.alt=s.title+' cover artwork';img.style.cssText='display:block;width:100%;max-width:280px;height:auto;margin:10px 0';img.onload=()=>p.textContent='Artwork: loaded successfully';img.onerror=()=>p.textContent='Artwork: could not load';verification.append(img);img.src=cover;}
+     else line('Artwork: missing or unsupported path');
+     if(preview){const p=line('Preview: checking audio…');const a=document.createElement('audio');a.controls=true;a.preload='metadata';a.style.width='100%';a.setAttribute('controlsList','nodownload');a.onloadedmetadata=()=>p.textContent='Preview: '+a.duration.toFixed(1)+' seconds — '+(a.duration>=15&&a.duration<=30.5?'duration OK':'check duration');a.onerror=()=>p.textContent='Preview: could not load';verification.append(a);a.src=preview;}
+     else line('Preview: missing or unsupported path');
+     const owner=await client.rpc('admin_music_library');
+     if(version!==verifyVersion)return;
+     line(owner.error?'Private track check unavailable: '+owner.error.message:(owner.data||[]).some(t=>t.song_id===id)?'Private full track: registered. Test playback in PRIVATE OWNER MUSIC.':'Private full track: not registered');
+     const url=new URL('/rest/v1/songs',config.url);url.searchParams.set('select','id,title');url.searchParams.set('is_published','eq.true');url.searchParams.set('limit','1000');
+     const headers={apikey:config.publishableKey};if(config.publishableKey.startsWith('eyJ'))headers.Authorization='Bearer '+config.publishableKey;
+     const response=await fetch(url,{headers,credentials:'omit',cache:'no-store',signal:AbortSignal.timeout(15000)});
+     if(version!==verifyVersion)return;
+     if(!response.ok){line('Public catalog connection: HTTP '+response.status+' — needs review.');return}
+     const rows=await response.json();if(!Array.isArray(rows))throw Error('Unexpected public catalog response');
+     line('Public catalog connection: OK — '+rows.length+' published releases visible when signed out.');
+     line(rows.some(t=>t.id===id)?'Selected release is publicly readable in the catalog.':s.is_published?'Selected release is marked published but not publicly readable.':'Selected draft is not exposed through the public catalog.');
+   }catch(err){if(version===verifyVersion)line('Verification could not finish: '+err.message)}
+   finally{if(version===verifyVersion)verifyButton.disabled=false}
+ });
+
  async function upload(bucket,file,ext){
    const path=crypto.randomUUID()+'.'+ext;
    const {error}=await client.storage.from(bucket).upload(path,file,{upsert:false,contentType:bucket==='cover-artwork'?file.type:'audio/mpeg'});
