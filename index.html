@@ -83,57 +83,32 @@ body.home-room .home-counters{width:min(100%,calc((100dvh - 100px) * 1.779));fle
     </section>
     </section>
 
-    <section class="section store" id="store">
-      <div class="section-head"><p class="eyebrow">THE DROP / 001</p><h2>MUSIC <em>STORE</em></h2></div>
-      <article class="release">
-        <div class="artwork">
-          <img class="cover-image" src="assets/freaknicc-cover.png" alt="Official Freaknicc single cover art by HDmiLuchi">
-        </div>
-        <div class="release-info">
-          <p class="eyebrow">FIRST SINGLE</p>
-          <h3>Freaknicc</h3>
-          <p class="muted">HDmiLuchi🎧</p>
-          <div class="price">$1.99 <small>USD equivalent · target total including priority Bitcoin network fee</small></div>
-          <p class="tiny">Price breakdown: song payment + estimated priority network fee = $1.99 target total. For example, $1.57 for music + $0.42 network fee. Actual wallet fees vary; final total may differ. Any legally required tax will be disclosed before payment.</p>
-          <div class="sample-box">
-            <div class="sample-label"><span>PREVIEW</span><span>15–30 SEC</span></div>
-            <audio controls controlsList="nodownload" disablePictureInPicture preload="none" id="preview" aria-label="Freaknicc preview">
-              <source src="assets/freaknicc-preview.mp3" type="audio/mpeg">
-              Your browser does not support audio.
-            </audio>
-            <p class="tiny">Hit Play Now</p>
-          </div>
-          <button class="button button-wide" id="buy" disabled>BITCOIN CHECKOUT — COMING SOON</button>
-          <p class="tiny">Full track access will unlock after a verified payment. No payment is collected on this starter site. <a href="#bitcoin" style="color:#8fcfff">New to Bitcoin? Cash App guide ↗</a></p>
-        </div>
-      </article>
-    </section>
-
-
-    <section class="section store" id="second-release">
-      <div class="section-head"><p class="eyebrow">THE DROP / 002</p><h2>SECOND <em>RELEASE</em></h2></div>
-      <article class="release">
-        <div class="artwork">
-          <img class="cover-image" src="assets/addicted-cover.png" alt="Official Addicted single cover art by HDmiLuchi">
-        </div>
-        <div class="release-info">
-          <p class="eyebrow">LATEST SINGLE</p>
-          <h3>Addicted</h3>
-          <p class="muted">HDmiLuchi🎧 · Second single release</p>
-          <div class="price">$1.99 <small>USD equivalent · target total including priority Bitcoin network fee</small></div>
-          <p class="tiny">Price breakdown: song payment + estimated priority network fee = $1.99 target total. For example, $1.57 for music + $0.42 network fee. Actual wallet fees vary; final total may differ. Any legally required tax will be disclosed before payment.</p>
-          <div class="sample-box">
-            <div class="sample-label"><span>PREVIEW</span><span>30 SEC</span></div>
-            <audio controls controlsList="nodownload" disablePictureInPicture preload="none" aria-label="Addicted preview">
-              <source src="assets/Addicted_preview_clean%202.mp3" type="audio/mpeg">
-              Your browser does not support audio.
-            </audio>
-            <p class="tiny">Hit Play Now</p>
-          </div>
-          <button class="button button-wide" disabled>CHECKOUT NOT YET CONNECTED</button>
-          <p class="tiny">This listing is a preview of the upcoming release. No payment is collected. <a href="#bitcoin" style="color:#8fcfff">New to Bitcoin? Cash App guide ↗</a></p>
-        </div>
-      </article>
+    <section id="store" aria-label="Music store" style="padding:0">
+      <div id="catalog-status" class="section" role="status" aria-live="polite">Loading music store…</div>
+      <div id="catalog-releases"></div>
+      <div style="padding:0 7vw 24px"><button id="catalog-retry" type="button" class="button">REFRESH MUSIC STORE</button></div>
+      <template id="release-template">
+        <section class="section store">
+          <div class="section-head"><p class="eyebrow drop-label"></p><h2 class="drop-heading"></h2></div>
+          <article class="release">
+            <div class="artwork"><img class="cover-image" alt="" loading="lazy" hidden><div class="art-placeholder" hidden><strong>HDmiLuchi</strong><small>Cover unavailable</small></div></div>
+            <div class="release-info">
+              <p class="eyebrow release-label"></p>
+              <h3 class="song-title"></h3>
+              <p class="muted">HDmiLuchi🎧</p>
+              <div class="price"><span class="song-price"></span> <small>USD equivalent · target total including priority Bitcoin network fee</small></div>
+              <p class="tiny">Actual wallet fees vary; final total may differ. Any legally required tax will be disclosed before payment.</p>
+              <div class="sample-box">
+                <div class="sample-label"><span>PREVIEW</span><span>15–30 SEC</span></div>
+                <audio controls controlsList="nodownload" disablePictureInPicture preload="none" hidden></audio>
+                <p class="tiny preview-status">Preview unavailable</p>
+              </div>
+              <button class="button button-wide" disabled>BITCOIN CHECKOUT — COMING SOON</button>
+              <p class="tiny">Full track access will unlock after a verified payment. No payment is collected. <a href="#bitcoin" style="color:#8fcfff">Bitcoin help ↗</a></p>
+            </div>
+          </article>
+        </section>
+      </template>
     </section>
 
     <section class="section split" id="library">
@@ -228,5 +203,94 @@ body.home-room .home-counters{width:min(100%,calc((100dvh - 100px) * 1.779));fle
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="script.js?v=fan-library-1"></script>
+  <script>
+  (() => {
+    const config=window.HDMI_SUPABASE_CONFIG;
+    const root=document.getElementById('catalog-releases');
+    const status=document.getElementById('catalog-status');
+    const retry=document.getElementById('catalog-retry');
+    const template=document.getElementById('release-template');
+    let version=0;
+    let pending=null;
+    function mediaURL(raw,bucket) {
+      if(typeof raw!=='string'||!raw.trim())return null;
+      try {
+        const u=new URL(raw,location.href), project=new URL(config.url);
+        const ext=bucket==='song-previews'?/\.mp3$/i:/\.(png|jpe?g|webp)$/i;
+        if(!ext.test(u.pathname)||u.username||u.password)return null;
+        if(u.origin===location.origin&&u.pathname.startsWith('/assets/'))return u.href;
+        if(u.origin===project.origin&&u.pathname.startsWith('/storage/v1/object/public/'+bucket+'/'))return u.href;
+      } catch {}
+      return null;
+    }
+    function resetCatalog(){
+      root.querySelectorAll('audio').forEach(a=>{a.pause();a.removeAttribute('src');a.load()});
+      root.replaceChildren();
+    }
+    function render(rows) {
+      const fragment=document.createDocumentFragment();
+      const ordinals=['FIRST','SECOND','THIRD','FOURTH','FIFTH','SIXTH','SEVENTH','EIGHTH','NINTH','TENTH','ELEVENTH'];
+      rows.forEach((song,i)=>{
+        const part=template.content.cloneNode(true);
+        const q=s=>part.querySelector(s);
+        const title=song.title;
+        q('.drop-label').textContent='THE DROP / '+String(i+1).padStart(3,'0');
+        const heading=q('.drop-heading'), em=document.createElement('em');
+        heading.append(document.createTextNode(i===0?'MUSIC ':(ordinals[i]||'MORE')+' '));
+        em.textContent=i===0?'STORE':'RELEASE';heading.append(em);
+        q('.release-label').textContent=ordinals[i]?ordinals[i]+' SINGLE':'SINGLE';
+        q('.song-title').textContent=title;
+        q('.song-price').textContent=new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(song.price_cents/100);
+        const cover=q('img'), placeholder=q('.art-placeholder');
+        const coverURL=mediaURL(song.cover_image_path,'cover-artwork');
+        placeholder.hidden=Boolean(coverURL);placeholder.style.display=coverURL?'none':'flex';
+        if(coverURL){cover.alt=title+' — official cover artwork';cover.hidden=false;cover.onerror=()=>{cover.hidden=true;placeholder.hidden=false;placeholder.style.display='flex'};cover.src=coverURL;}
+        const audio=q('audio'), note=q('.preview-status'), previewURL=mediaURL(song.preview_audio_path,'song-previews');
+        if(previewURL){audio.hidden=false;audio.setAttribute('aria-label',title+' preview');note.textContent='Hit Play Now';audio.onerror=()=>{note.textContent='Preview temporarily unavailable.'};audio.src=previewURL;}
+        fragment.append(part);
+      });
+      root.replaceChildren(fragment);
+    }
+    async function loadCatalog() {
+      const current=++version;
+      if(pending)pending.abort();
+      pending=new AbortController();
+      const controller=pending;
+      const timer=setTimeout(()=>controller.abort(),15000);
+      retry.disabled=true;
+      resetCatalog();status.hidden=false;status.textContent='Loading music store…';
+      try {
+        if(!config?.url||!config?.publishableKey)throw Error('Catalog configuration missing');
+        const url=new URL('/rest/v1/songs',config.url);
+        url.searchParams.set('select','id,title,cover_image_path,preview_audio_path,price_cents,display_order,is_published');
+        url.searchParams.set('is_published','eq.true');
+        url.searchParams.set('order','display_order.asc,id.asc');
+        url.searchParams.set('limit','1000');
+        const headers={apikey:config.publishableKey};
+        if(config.publishableKey.startsWith('eyJ'))headers.Authorization='Bearer '+config.publishableKey;
+        const response=await fetch(url,{headers,credentials:'omit',cache:'no-store',signal:controller.signal});
+        if(!response.ok)throw Error('Catalog request failed');
+        const rows=await response.json();
+        if(current!==version)return;
+        if(!Array.isArray(rows)||rows.some(s=>s.is_published!==true||typeof s.title!=='string'||!Number.isSafeInteger(s.price_cents)||s.price_cents<=0))throw Error('Invalid catalog response');
+        if(!rows.length){status.textContent='No releases are currently published. Check back soon.';return;}
+        render(rows);status.hidden=true;
+      } catch(err) {
+        if(current===version){resetCatalog();status.hidden=false;status.textContent='Music store temporarily unavailable. Tap REFRESH MUSIC STORE to try again.';}
+      } finally {
+        clearTimeout(timer);
+        if(current===version){retry.disabled=false;pending=null;}
+      }
+    }
+    function onRoom(){
+      if(location.hash==='#store'||location.hash==='#second-release')loadCatalog();
+      else if(pending){version++;pending.abort();pending=null;retry.disabled=false;}
+    }
+    retry.addEventListener('click',loadCatalog);
+    window.addEventListener('hashchange',onRoom);
+    window.addEventListener('pageshow',event=>{if(event.persisted)onRoom()});
+    onRoom();
+  })();
+  </script>
 </body>
 </html>
